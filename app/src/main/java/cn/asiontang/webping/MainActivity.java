@@ -442,6 +442,9 @@ public class MainActivity extends Activity
 
                                     Log.e("Ping.onError", e.toString());
 
+                                    if (!mUrlAndReachable.containsKey(url) || !mUrlAndReachable.get(url))
+                                        mUrlAndReachable.put(url, false);
+
                                     getOutput().append(e.toString());
                                     getOutput().append("\n");
 
