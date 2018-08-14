@@ -36,12 +36,13 @@ public class MainActivity extends Activity
     private final Map<String, Boolean> mUrlAndReachable = new HashMap<>();
     private final Map<String, StringBuilder> mIpAndResult = new HashMap<>();
     private final Map<String, Object[]> mUrlAndTheFastestAvgIp = new HashMap<>();
+    private final List<Ping> mPingList = new ArrayList<>();
     private EditText edtInput;
     private InnerAdapter mAdapter;
     private ProgressBar mProgress;
     private Handler mProgressHandler = new Handler(new Handler.Callback()
     {
-        public boolean isInvert;
+        boolean isInvert;
 
         @Override
         public boolean handleMessage(final Message message)
@@ -63,6 +64,7 @@ public class MainActivity extends Activity
             return false;
         }
     });
+    private TextView btnDoit;
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -71,7 +73,16 @@ public class MainActivity extends Activity
 
         setContentView(R.layout.main);
 
-        findViewById(android.R.id.button1).setOnClickListener(new View.OnClickListener()
+        edtInput = findViewById(android.R.id.input);
+        if (BuildConfig.DEBUG)
+            edtInput.setText("www.baidu.com\r\n" +
+                    "www.qq.com\r\n" +
+                    "www.google.com\r\n" +
+                    "www.tumblr.com\r\n" +
+                    "www.inoreader.com\r\n");
+
+        btnDoit = findViewById(android.R.id.button1);
+        btnDoit.setOnClickListener(new View.OnClickListener()
         {
             @Override
             public void onClick(final View view)
@@ -79,16 +90,8 @@ public class MainActivity extends Activity
                 startPing();
             }
         });
-        edtInput = findViewById(android.R.id.input);
 
         mProgress = findViewById(android.R.id.progress);
-
-        if (BuildConfig.DEBUG)
-            edtInput.setText("www.baidu.com\r\n" +
-                    "www.qq.com\r\n" +
-                    "www.google.com\r\n" +
-                    "www.tumblr.com\r\n" +
-                    "www.inoreader.com\r\n");
 
         ExpandableListView list = findViewById(android.R.id.list);
         list.setAdapter(mAdapter = new InnerAdapter(this, mUrlAndIpList));
@@ -106,15 +109,36 @@ public class MainActivity extends Activity
         });
     }
 
+    private void reset()
+    {
+        for (Ping ping : mPingList)
+            ping.cancel();
+        mPingList.clear();
+
+        edtInput.setEnabled(true);
+
+        btnDoit.setText("确定");
+
+        mProgress.setProgress(mProgress.getMax());
+
+        mProgressHandler.removeMessages(0);
+    }
+
     @SuppressLint("StaticFieldLeak")
     private void startPing()
     {
+        if (mPingList.size() > 0)
+        {
+            reset();
+            return;
+        }
         edtInput.setEnabled(false);
-        findViewById(android.R.id.button1).setEnabled(false);
+        btnDoit.setText("停止");
 
         mProgress.setIndeterminate(true);
         mProgress.setMax(100);
 
+        mPingList.clear();
         mUrlAndIpList.clear();
         mUrlAndReachable.clear();
         mIpAndResult.clear();
@@ -154,7 +178,7 @@ public class MainActivity extends Activity
 
                             mIpAndResult.put(ip, new StringBuilder("正在请求中\n\n"));
 
-                            Ping.onAddress(ip).setTimeOutMillis(timeout).setTimes(times).doPing(new Ping.PingListener()
+                            mPingList.add(Ping.onAddress(ip).setTimeOutMillis(timeout).setTimes(times).doPing(new Ping.PingListener()
                             {
                                 private StringBuilder getOutput()
                                 {
@@ -171,21 +195,7 @@ public class MainActivity extends Activity
                                 public void onError(final Exception e)
                                 {
                                     //更新进度,当进度完成时解冻UI.
-                                    runOnUiThread(new Runnable()
-                                    {
-                                        @Override
-                                        public void run()
-                                        {
-                                            mProgress.incrementProgressBy(1);
-
-                                            if (mProgress.getProgress() >= mProgress.getMax())
-                                            {
-                                                edtInput.setEnabled(true);
-                                                findViewById(android.R.id.button1).setEnabled(true);
-                                                mProgressHandler.removeMessages(0);
-                                            }
-                                        }
-                                    });
+                                    updateCurrentProgress();
 
                                     Log.e("Ping.onError", e.toString());
 
@@ -201,21 +211,7 @@ public class MainActivity extends Activity
                                     Log.e("Ping.onFinished", e.toString());
 
                                     //更新进度,当进度完成时解冻UI.
-                                    runOnUiThread(new Runnable()
-                                    {
-                                        @Override
-                                        public void run()
-                                        {
-                                            mProgress.incrementProgressBy(1);
-
-                                            if (mProgress.getProgress() >= mProgress.getMax())
-                                            {
-                                                edtInput.setEnabled(true);
-                                                findViewById(android.R.id.button1).setEnabled(true);
-                                                mProgressHandler.removeMessages(0);
-                                            }
-                                        }
-                                    });
+                                    updateCurrentProgress();
 
                                     //只要有一半的包接收到了就说明网络还算是通的.
                                     boolean isReachable = false;
@@ -275,7 +271,7 @@ public class MainActivity extends Activity
 
                                     refresh();
                                 }
-                            });
+                            }));
                         }
                     }
                     catch (UnknownHostException e)
@@ -299,6 +295,22 @@ public class MainActivity extends Activity
                 return null;
             }
         }.execute();
+    }
+
+    private void updateCurrentProgress()
+    {
+        //更新进度,当进度完成时解冻UI.
+        runOnUiThread(new Runnable()
+        {
+            @Override
+            public void run()
+            {
+                mProgress.incrementProgressBy(1);
+
+                if (mProgress.getProgress() >= mProgress.getMax())
+                    reset();
+            }
+        });
     }
 
     class InnerAdapter extends BaseExpandableListAdapterEx<String, String>
