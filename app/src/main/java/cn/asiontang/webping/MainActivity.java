@@ -1,11 +1,17 @@
 package cn.asiontang.webping;
 
+import com.qiniu.android.dns.DnsManager;
+import com.qiniu.android.dns.Domain;
+import com.qiniu.android.dns.IResolver;
+import com.qiniu.android.dns.NetworkInfo;
+import com.qiniu.android.dns.local.Resolver;
 import com.stealthcopter.networktools.Ping;
 import com.stealthcopter.networktools.ping.PingResult;
 import com.stealthcopter.networktools.ping.PingStats;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Context;
 import android.graphics.Color;
 import android.graphics.Typeface;
@@ -22,6 +28,7 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
@@ -65,6 +72,73 @@ public class MainActivity extends Activity
         }
     });
     private TextView btnDoit;
+
+    @SuppressLint("StaticFieldLeak")
+    private void checkIsOk(final Runnable runnable)
+    {
+        new AsyncTask<Void, Void, Boolean>()
+        {
+            @Override
+            protected Boolean doInBackground(final Void... voids)
+            {
+                try
+                {
+                    if (Integer.parseInt(MainActivity.this.<TextView>findViewById(R.id.edtTimeout).getText().toString()) < 1000)
+                    {
+                        runOnUiThread(new Runnable()
+                        {
+                            @Override
+                            public void run()
+                            {
+                                MainActivity.this.<TextView>findViewById(R.id.edtTimeout).setText("1000");
+                                Toast.makeText(MainActivity.this, "超时时间不能小于1000毫秒!", Toast.LENGTH_SHORT).show();
+                            }
+                        });
+                        return false;
+                    }
+
+                    final String dns = MainActivity.this.<TextView>findViewById(R.id.edtDNS).getText().toString();
+                    final InetAddress dnsName = InetAddress.getByName(dns);
+                    if (dnsName == null || !dns.equals(dnsName.getHostAddress()))
+                    {
+                        runOnUiThread(new Runnable()
+                        {
+                            @Override
+                            public void run()
+                            {
+                                Toast.makeText(MainActivity.this, "无效的自定义DNS服务器地址!", Toast.LENGTH_SHORT).show();
+                            }
+                        });
+                        return false;
+                    }
+                }
+                catch (final Exception e)
+                {
+                    runOnUiThread(new Runnable()
+                    {
+                        @Override
+                        public void run()
+                        {
+                            Toast.makeText(MainActivity.this, "出现未知异常", Toast.LENGTH_SHORT).show();
+                            new AlertDialog.Builder(MainActivity.this)
+                                    .setTitle("出现未知异常")
+                                    .setMessage(e.toString())
+                                    .setNegativeButton(android.R.string.ok, null)
+                                    .show();
+                        }
+                    });
+                }
+                return true;
+            }
+
+            @Override
+            protected void onPostExecute(final Boolean aBoolean)
+            {
+                if (aBoolean)
+                    runnable.run();
+            }
+        }.execute();
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -127,11 +201,31 @@ public class MainActivity extends Activity
     @SuppressLint("StaticFieldLeak")
     private void startPing()
     {
+        startPing(false);
+    }
+
+    @SuppressLint("StaticFieldLeak")
+    private void startPing(final boolean isOK)
+    {
         if (mPingList.size() > 0)
         {
             reset();
             return;
         }
+
+        if (!isOK)
+        {
+            checkIsOk(new Runnable()
+            {
+                @Override
+                public void run()
+                {
+                    startPing(true);
+                }
+            });
+            return;
+        }
+
         edtInput.setEnabled(false);
         btnDoit.setText("停止");
 
@@ -151,147 +245,170 @@ public class MainActivity extends Activity
 
         refresh();
 
-        int timeoutTmp = Integer.parseInt(this.<TextView>findViewById(R.id.edtTimeout).getText().toString());
-        if (timeoutTmp < 1000)
-        {
-            timeoutTmp = 1000;
-            this.<TextView>findViewById(R.id.edtTimeout).setText("1000");
-            Toast.makeText(this, "超时时间不能小于1000毫秒!", Toast.LENGTH_SHORT).show();
-        }
-        final int timeout = timeoutTmp;
+        final int timeout = Integer.parseInt(this.<TextView>findViewById(R.id.edtTimeout).getText().toString());
         final int times = Integer.parseInt(this.<TextView>findViewById(R.id.edtTimes).getText().toString());
         new AsyncTask<Void, Void, Void>()
         {
             @Override
             protected Void doInBackground(final Void... voids)
             {
-                for (final Map.Entry<String, List<String>> entry : mUrlAndIpList.entrySet())
+                try
                 {
-                    try
+                    //qiniu/happy-dns-android: dns library for android
+                    //https://github.com/qiniu/happy-dns-android
+                    IResolver[] resolvers = new IResolver[1];
+                    resolvers[0] = new Resolver(InetAddress.getByName(MainActivity.this.<TextView>findViewById(R.id.edtDNS).getText().toString())); //自定义 DNS 服务器地址
+                    //resolvers[1] = AndroidDnsServer.defaultResolver(); //系统默认 DNS 服务器
+                    DnsManager dns = new DnsManager(NetworkInfo.normal, resolvers);
+
+                    for (final Map.Entry<String, List<String>> entry : mUrlAndIpList.entrySet())
                     {
-                        final String url = entry.getKey();
-                        final InetAddress[] allByName = InetAddress.getAllByName(url);
-                        for (InetAddress address : allByName)
+                        try
                         {
-                            final String ip = address.getHostAddress();
-                            entry.getValue().add(ip);
-
-                            mIpAndResult.put(ip, new StringBuilder("正在请求中\n\n"));
-
-                            mPingList.add(Ping.onAddress(ip).setTimeOutMillis(timeout).setTimes(times).doPing(new Ping.PingListener()
+                            final String url = entry.getKey();
+                            final InetAddress[] allByName = dns.queryInetAdress(new Domain(url, false, false));
+                            for (InetAddress address : allByName)
                             {
-                                private StringBuilder getOutput()
+                                final String ip = address.getHostAddress();
+                                entry.getValue().add(ip);
+
+                                mIpAndResult.put(ip, new StringBuilder("正在请求中\n\n"));
+
+                                mPingList.add(Ping.onAddress(ip).setTimeOutMillis(timeout).setTimes(times).doPing(new Ping.PingListener()
                                 {
-                                    StringBuilder s = mIpAndResult.get(ip);
-                                    if (s == null)
+                                    private StringBuilder getOutput()
                                     {
-                                        s = new StringBuilder();
-                                        mIpAndResult.put(ip, s);
-                                    }
-                                    return s;
-                                }
-
-                                @Override
-                                public void onError(final Exception e)
-                                {
-                                    //更新进度,当进度完成时解冻UI.
-                                    updateCurrentProgress();
-
-                                    Log.e("Ping.onError", e.toString());
-
-                                    getOutput().append(e.toString());
-                                    getOutput().append("\n");
-
-                                    refresh();
-                                }
-
-                                @Override
-                                public void onFinished(final PingStats e)
-                                {
-                                    Log.e("Ping.onFinished", e.toString());
-
-                                    //更新进度,当进度完成时解冻UI.
-                                    updateCurrentProgress();
-
-                                    //只要有一半的包接收到了就说明网络还算是通的.
-                                    boolean isReachable = false;
-                                    if (!mUrlAndReachable.containsKey(url) || !mUrlAndReachable.get(url))
-                                        mUrlAndReachable.put(url, isReachable = (double) e.getPacketsLost() / (double) e.getNoPings() < 0.5d);
-
-                                    //统计平均响应时间最短的IP
-                                    if (isReachable)
-                                    {
-                                        Object[] ipAndAvg = mUrlAndTheFastestAvgIp.get(url);
-                                        if (ipAndAvg == null)
+                                        StringBuilder s = mIpAndResult.get(ip);
+                                        if (s == null)
                                         {
-                                            ipAndAvg = new Object[]{ip, e.getAverageTimeTaken()};
-                                            mUrlAndTheFastestAvgIp.put(url, ipAndAvg);
+                                            s = new StringBuilder();
+                                            mIpAndResult.put(ip, s);
                                         }
-                                        else
+                                        return s;
+                                    }
+
+                                    @Override
+                                    public void onError(final Exception e)
+                                    {
+                                        //更新进度,当进度完成时解冻UI.
+                                        updateCurrentProgress();
+
+                                        Log.e("Ping.onError", e.toString());
+
+                                        getOutput().append(e.toString());
+                                        getOutput().append("\n");
+
+                                        refresh();
+                                    }
+
+                                    @Override
+                                    public void onFinished(final PingStats e)
+                                    {
+                                        Log.e("Ping.onFinished", e.toString());
+
+                                        //更新进度,当进度完成时解冻UI.
+                                        updateCurrentProgress();
+
+                                        //只要有一半的包接收到了就说明网络还算是通的.
+                                        boolean isReachable = false;
+                                        if (!mUrlAndReachable.containsKey(url) || !mUrlAndReachable.get(url))
+                                            mUrlAndReachable.put(url, isReachable = (double) e.getPacketsLost() / (double) e.getNoPings() < 0.5d);
+
+                                        //统计平均响应时间最短的IP
+                                        if (isReachable)
                                         {
-                                            final float lastAvg = (float) ipAndAvg[1];
-                                            if (e.getAverageTimeTaken() < lastAvg)
+                                            Object[] ipAndAvg = mUrlAndTheFastestAvgIp.get(url);
+                                            if (ipAndAvg == null)
                                             {
                                                 ipAndAvg = new Object[]{ip, e.getAverageTimeTaken()};
                                                 mUrlAndTheFastestAvgIp.put(url, ipAndAvg);
                                             }
+                                            else
+                                            {
+                                                final float lastAvg = (float) ipAndAvg[1];
+                                                if (e.getAverageTimeTaken() < lastAvg)
+                                                {
+                                                    ipAndAvg = new Object[]{ip, e.getAverageTimeTaken()};
+                                                    mUrlAndTheFastestAvgIp.put(url, ipAndAvg);
+                                                }
+                                            }
                                         }
+
+                                        getOutput().append("\n");
+                                        getOutput().append("Ping 统计信息:").append("\n");
+
+                                        getOutput().append("\t封包:");
+                                        getOutput().append(" 发送=").append(e.getNoPings()).append(",");
+                                        getOutput().append(" 接收=").append(e.getNoPings() - e.getPacketsLost()).append(",");
+                                        getOutput().append(" 丢失=").append(e.getPacketsLost());
+                                        getOutput().append("\n");
+
+                                        getOutput().append("\t时间:");
+                                        getOutput().append(" 平均=").append((int) e.getAverageTimeTaken()).append("ms,");
+                                        getOutput().append(" 最短=").append((int) e.getMinTimeTaken()).append("ms,");
+                                        getOutput().append(" 最长=").append((int) e.getMaxTimeTaken()).append("ms");
+                                        getOutput().append("\n");
+
+                                        refresh();
                                     }
 
-                                    getOutput().append("\n");
-                                    getOutput().append("Ping 统计信息:").append("\n");
-
-                                    getOutput().append("\t封包:");
-                                    getOutput().append(" 发送=").append(e.getNoPings()).append(",");
-                                    getOutput().append(" 接收=").append(e.getNoPings() - e.getPacketsLost()).append(",");
-                                    getOutput().append(" 丢失=").append(e.getPacketsLost());
-                                    getOutput().append("\n");
-
-                                    getOutput().append("\t时间:");
-                                    getOutput().append(" 平均=").append((int) e.getAverageTimeTaken()).append("ms,");
-                                    getOutput().append(" 最短=").append((int) e.getMinTimeTaken()).append("ms,");
-                                    getOutput().append(" 最长=").append((int) e.getMaxTimeTaken()).append("ms");
-                                    getOutput().append("\n");
-
-                                    refresh();
-                                }
-
-                                @Override
-                                public void onResult(PingResult e)
-                                {
-                                    Log.e("Ping.onResult", e.toString());
-
-                                    getOutput().append("时间=").append((int) e.timeTaken).append("ms");
-                                    if (e.error != null)
+                                    @Override
+                                    public void onResult(PingResult e)
                                     {
-                                        getOutput().append(" ");
-                                        getOutput().append("结果=").append(e.error);
-                                    }
-                                    getOutput().append("\n");
+                                        Log.e("Ping.onResult", e.toString());
 
-                                    refresh();
-                                }
-                            }));
+                                        getOutput().append("时间=").append((int) e.timeTaken).append("ms");
+                                        if (e.error != null)
+                                        {
+                                            getOutput().append(" ");
+                                            getOutput().append("结果=").append(e.error);
+                                        }
+                                        getOutput().append("\n");
+
+                                        refresh();
+                                    }
+                                }));
+                            }
+                        }
+                        catch (UnknownHostException e)
+                        {
+                            e.printStackTrace();
+                        }
+                        catch (IOException e)
+                        {
+                            e.printStackTrace();
                         }
                     }
-                    catch (UnknownHostException e)
+                    runOnUiThread(new Runnable()
                     {
-                        e.printStackTrace();
-                    }
+                        @Override
+                        public void run()
+                        {
+                            mProgress.setMax(0);
+                            mProgress.setIndeterminate(false);
+                            for (final Map.Entry<String, List<String>> entry : mUrlAndIpList.entrySet())
+                                mProgress.setMax(mProgress.getMax() + entry.getValue().size());
+                            mProgressHandler.sendEmptyMessage(0);
+                        }
+                    });
+                    refresh();
                 }
-                runOnUiThread(new Runnable()
+                catch (final Exception e)
                 {
-                    @Override
-                    public void run()
+                    runOnUiThread(new Runnable()
                     {
-                        mProgress.setMax(0);
-                        mProgress.setIndeterminate(false);
-                        for (final Map.Entry<String, List<String>> entry : mUrlAndIpList.entrySet())
-                            mProgress.setMax(mProgress.getMax() + entry.getValue().size());
-                        mProgressHandler.sendEmptyMessage(0);
-                    }
-                });
-                refresh();
+                        @Override
+                        public void run()
+                        {
+                            Toast.makeText(MainActivity.this, "出现未知异常", Toast.LENGTH_SHORT).show();
+                            new AlertDialog.Builder(MainActivity.this)
+                                    .setTitle("出现未知异常")
+                                    .setMessage(e.toString())
+                                    .setNegativeButton(android.R.string.ok, null)
+                                    .show();
+                        }
+                    });
+                }
                 return null;
             }
         }.execute();
