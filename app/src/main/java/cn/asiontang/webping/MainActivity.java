@@ -125,6 +125,9 @@ public class MainActivity extends Activity
                 mUrlAndIpList.put(url, new ArrayList<String>());
 
         refresh();
+
+        final int timeout = Integer.parseInt(this.<TextView>findViewById(R.id.edtTimeout).getText().toString());
+        final int times = Integer.parseInt(this.<TextView>findViewById(R.id.edtTimes).getText().toString());
         new AsyncTask<Void, Void, Void>()
         {
             @Override
@@ -143,7 +146,7 @@ public class MainActivity extends Activity
 
                             mIpAndResult.put(ip, new StringBuilder("正在请求中\n\n"));
 
-                            Ping.onAddress(ip).setTimeOutMillis(1000).setTimes(5).doPing(new Ping.PingListener()
+                            Ping.onAddress(ip).setTimeOutMillis(timeout).setTimes(times).doPing(new Ping.PingListener()
                             {
                                 private StringBuilder getOutput()
                                 {

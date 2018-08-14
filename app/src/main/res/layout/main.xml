@@ -9,6 +9,38 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal">
 
+        <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="超时时间(毫秒):" />
+
+        <EditText
+                android:id="@+id/edtTimeout"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:inputType="numberSigned"
+                android:text="1000" />
+
+        <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="次数:" />
+
+        <EditText
+                android:id="@+id/edtTimes"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:inputType="numberSigned"
+                android:text="5" />
+    </LinearLayout>
+
+    <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
         <EditText
                 android:id="@android:id/input"
                 android:layout_width="0dp"
