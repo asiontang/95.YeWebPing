@@ -68,6 +68,8 @@ public class MainActivity extends Activity
     private void startPing()
     {
         mUrlAndResult.clear();
+        mIpAndResult.clear();
+        
         for (String url : edtInput.getText().toString().split("\r\n"))
             mUrlAndResult.put(url, new ArrayList<String>());
 
@@ -133,8 +135,11 @@ public class MainActivity extends Activity
                                     Log.e("Ping.onResult", e.toString());
 
                                     getOutput().append("时间=").append((int) e.timeTaken).append("ms");
-                                    getOutput().append(" ");
-                                    getOutput().append("结果=").append(e.error);
+                                    if (e.error != null)
+                                    {
+                                        getOutput().append(" ");
+                                        getOutput().append("结果=").append(e.error);
+                                    }
                                     getOutput().append("\n");
 
                                     refresh();
