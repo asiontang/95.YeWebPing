@@ -11,28 +11,48 @@ import android.graphics.Color;
 import android.graphics.Typeface;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.ExpandableListView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 public class MainActivity extends Activity
 {
-    private final Map<String, List<String>> mUrlAndIpList = new HashMap<>();
+    private final Map<String, List<String>> mUrlAndIpList = new LinkedHashMap<>();
     private final Map<String, Boolean> mUrlAndReachable = new HashMap<>();
     private final Map<String, StringBuilder> mIpAndResult = new HashMap<>();
     private final Map<String, Object[]> mUrlAndTheFastestAvgIp = new HashMap<>();
     private EditText edtInput;
     private InnerAdapter mAdapter;
+    private ProgressBar mProgress;
+    private Handler mProgressHandler = new Handler(new Handler.Callback()
+    {
+        @Override
+        public boolean handleMessage(final Message message)
+        {
+            if (mProgress == null)
+                return false;
+            if (mProgress.getSecondaryProgress() >= mProgress.getMax())
+                mProgress.setSecondaryProgress(mProgress.getProgress());
+            else
+                mProgress.setSecondaryProgress(mProgress.getSecondaryProgress() + 1);
+            mProgressHandler.sendEmptyMessageDelayed(0, 500);
+            return false;
+        }
+    });
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -51,8 +71,14 @@ public class MainActivity extends Activity
         });
         edtInput = findViewById(android.R.id.input);
 
+        mProgress = findViewById(android.R.id.progress);
+
         if (BuildConfig.DEBUG)
-            edtInput.setText("qq.com\r\nbaidu.com\r\ngoogle.com");
+            edtInput.setText("www.baidu.com\r\n" +
+                    "www.qq.com\r\n" +
+                    "www.google.com\r\n" +
+                    "www.tumblr.com\r\n" +
+                    "www.inoreader.com\r\n");
 
         ExpandableListView list = findViewById(android.R.id.list);
         list.setAdapter(mAdapter = new InnerAdapter(this, mUrlAndIpList));
@@ -73,6 +99,12 @@ public class MainActivity extends Activity
     @SuppressLint("StaticFieldLeak")
     private void startPing()
     {
+        edtInput.setEnabled(false);
+        findViewById(android.R.id.button1).setEnabled(false);
+
+        mProgress.setIndeterminate(true);
+        mProgress.setMax(100);
+
         mUrlAndIpList.clear();
         mIpAndResult.clear();
 
@@ -114,6 +146,8 @@ public class MainActivity extends Activity
                                 @Override
                                 public void onError(final Exception e)
                                 {
+                                    mProgress.incrementProgressBy(1);
+
                                     Log.e("Ping.onError", e.toString());
 
                                     getOutput().append(e.toString());
@@ -126,6 +160,23 @@ public class MainActivity extends Activity
                                 public void onFinished(final PingStats e)
                                 {
                                     Log.e("Ping.onFinished", e.toString());
+
+                                    //更新进度,当进度完成时解冻UI.
+                                    runOnUiThread(new Runnable()
+                                    {
+                                        @Override
+                                        public void run()
+                                        {
+                                            mProgress.incrementProgressBy(1);
+
+                                            if (mProgress.getProgress() >= mProgress.getMax())
+                                            {
+                                                edtInput.setEnabled(true);
+                                                findViewById(android.R.id.button1).setEnabled(true);
+                                                mProgressHandler.removeMessages(0);
+                                            }
+                                        }
+                                    });
 
                                     //只要有一半的包接收到了就说明网络还算是通的.
                                     boolean isReachable = false;
@@ -193,6 +244,18 @@ public class MainActivity extends Activity
                         e.printStackTrace();
                     }
                 }
+                runOnUiThread(new Runnable()
+                {
+                    @Override
+                    public void run()
+                    {
+                        mProgress.setMax(0);
+                        mProgress.setIndeterminate(false);
+                        for (final Map.Entry<String, List<String>> entry : mUrlAndIpList.entrySet())
+                            mProgress.setMax(mProgress.getMax() + entry.getValue().size());
+                        mProgressHandler.sendEmptyMessage(0);
+                    }
+                });
                 refresh();
                 return null;
             }
