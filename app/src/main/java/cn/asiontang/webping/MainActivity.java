@@ -69,7 +69,7 @@ public class MainActivity extends Activity
     {
         mUrlAndResult.clear();
         mIpAndResult.clear();
-        
+
         for (String url : edtInput.getText().toString().split("\r\n"))
             mUrlAndResult.put(url, new ArrayList<String>());
 
@@ -88,6 +88,8 @@ public class MainActivity extends Activity
                         {
                             final String ip = address.getHostAddress();
                             entry.getValue().add(ip);
+
+                            mIpAndResult.put(ip, new StringBuilder("正在请求中\n"));
 
                             Ping.onAddress(ip).setTimeOutMillis(1000).setTimes(5).doPing(new Ping.PingListener()
                             {
@@ -119,11 +121,18 @@ public class MainActivity extends Activity
                                     Log.e("Ping.onFinished", e.toString());
 
                                     getOutput().append("\n");
-                                    getOutput().append("Ping 统计信息:").append("\n\t");
-                                    getOutput().append(" 数据包:");
-                                    getOutput().append(" 已发送=").append(e.getNoPings()).append(",");
-                                    getOutput().append(" 已接收=").append(e.getNoPings() - e.getPacketsLost()).append(",");
+                                    getOutput().append("Ping 统计信息:").append("\n");
+
+                                    getOutput().append("\t封包:");
+                                    getOutput().append(" 发送=").append(e.getNoPings()).append(",");
+                                    getOutput().append(" 接收=").append(e.getNoPings() - e.getPacketsLost()).append(",");
                                     getOutput().append(" 丢失=").append(e.getPacketsLost());
+                                    getOutput().append("\n");
+
+                                    getOutput().append("\t时间:");
+                                    getOutput().append(" 平均=").append((int) e.getAverageTimeTaken()).append("ms,");
+                                    getOutput().append(" 最短=").append((int) e.getMinTimeTaken()).append("ms,");
+                                    getOutput().append(" 最长=").append((int) e.getMaxTimeTaken()).append("ms");
                                     getOutput().append("\n");
 
                                     refresh();
