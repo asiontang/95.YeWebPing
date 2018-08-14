@@ -1,7 +1,5 @@
 package cn.asiontang.webping;
 
-import net.azyk.framework.ProgressTickHandler;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.Closeable;

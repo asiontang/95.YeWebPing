@@ -19,10 +19,12 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.os.SystemClock;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.ExpandableListView;
 import android.widget.ProgressBar;
@@ -74,6 +76,46 @@ public class MainActivity extends Activity
         }
     });
     private TextView btnDoit;
+
+    public static void checkItByHttp(final String host, final Ping.PingListener mPingListener)
+    {
+        HttpURLConnection con = null;
+        try
+        {
+            long startTime = SystemClock.currentThreadTimeMillis();
+            final URL url = new URL("http://" + host);
+            con = (HttpURLConnection) url.openConnection();
+            con.setRequestMethod("HEAD");
+            con.setConnectTimeout(5 * 1000);
+            con.setReadTimeout(5 * 1000);
+            con.setRequestProperty("Connection", "Close");
+            con.connect();
+
+            if (BuildConfig.DEBUG)
+                Log.e("-----", "getIpByHost con.getResponseCode() != 200 = " + con.getResponseCode());
+            if (con.getResponseCode() < 400)
+            {
+                final PingResult pingResult = new PingResult(null);
+                pingResult.fullString = "con.getResponseCode()=" + con.getResponseCode();
+                mPingListener.onResult(pingResult);
+                mPingListener.onFinished(new PingStats(null, 1, 0, SystemClock.currentThreadTimeMillis() - startTime, 0, 0));
+                return;
+            }
+            mPingListener.onFinished(new PingStats(null, 0, 1, SystemClock.currentThreadTimeMillis() - startTime, 0, 0));
+        }
+        catch (Exception e)
+        {
+            mPingListener.onError(e);
+
+            if (BuildConfig.DEBUG)
+                Log.e("-----", "getIpByHost Exception:" + host + e);
+        }
+        finally
+        {
+            if (con != null)
+                con.disconnect();
+        }
+    }
 
     /**
      * 同步解析接口，首先查询缓存，若存在则返回结果，若不存在则进行同步域名解析请求，解析完成返回最新解析结果，若解析失败返回null。
@@ -379,7 +421,7 @@ public class MainActivity extends Activity
                         final String url = entry.getKey();
                         for (final String ip : entry.getValue())
                         {
-                            mPingList.add(Ping.onAddress(ip).setTimeOutMillis(timeout).setTimes(times).doPing(new Ping.PingListener()
+                            final Ping.PingListener mPingListener = new Ping.PingListener()
                             {
                                 private StringBuilder getOutput()
                                 {
@@ -472,7 +514,12 @@ public class MainActivity extends Activity
 
                                     refresh();
                                 }
-                            }));
+                            };
+
+                            if (MainActivity.this.<CheckBox>findViewById(R.id.ckbIsEnableHttpCheck).isChecked())
+                                checkItByHttp(ip, mPingListener);
+                            else
+                                mPingList.add(Ping.onAddress(ip).setTimeOutMillis(timeout).setTimes(times).doPing(mPingListener));
                         }
                     }
                 }

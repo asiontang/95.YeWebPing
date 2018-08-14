@@ -21,6 +21,13 @@
                 android:layout_weight="1"
                 android:inputType="textUri"
                 android:text="8.8.8.8" />
+
+        <CheckBox
+                android:id="@+id/ckbIsEnableHttpCheck"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginRight="4dp"
+                android:text="Http检查" />
     </LinearLayout>
 
     <LinearLayout
