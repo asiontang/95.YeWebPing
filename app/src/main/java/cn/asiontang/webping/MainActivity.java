@@ -19,6 +19,7 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
@@ -28,7 +29,10 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.net.HttpURLConnection;
 import java.net.InetAddress;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -70,6 +74,87 @@ public class MainActivity extends Activity
         }
     });
     private TextView btnDoit;
+
+    /**
+     * 同步解析接口，首先查询缓存，若存在则返回结果，若不存在则进行同步域名解析请求，解析完成返回最新解析结果，若解析失败返回null。
+     *
+     * @param host 域名(如www.aliyun.com)
+     * @return 域名对应的解析结果 127.1.1.1
+     */
+    public static String getIpByHost(String host)
+    {
+        //当传递进来的Host不是正确的Host时,直接返回它自己.
+        if (TextUtils.isEmpty(host))
+            return host;
+
+        //当传递进来的Host不是正确的Host时,直接返回它自己.
+        try
+        {
+            if (!new URL("http://" + host).getHost().equals(host))
+                return host;
+        }
+        catch (MalformedURLException e)
+        {
+            e.printStackTrace();
+            return host;
+        }
+
+        //当host本来就是ip时,则不处理,直接返回.
+        if (host.matches("^[\\d\\.]+$"))
+            return host;
+
+        HttpURLConnection con = null;
+        try
+        {
+            //API - 移动解析 - 产品文档 - 帮助与文档 - 腾讯云
+            //https://www.qcloud.com/document/product/379/3524
+            final URL url = new URL("http://119.29.29.29/d?dn=" + host);
+            con = (HttpURLConnection) url.openConnection();
+            con.setRequestMethod("GET");
+            con.setConnectTimeout(5 * 1000);
+            con.setReadTimeout(5 * 1000);
+            con.setRequestProperty("Connection", "Close");
+            con.connect();
+
+            if (con.getResponseCode() != 200)
+            {
+                if (BuildConfig.DEBUG)
+                    Log.e("-----", "getIpByHost con.getResponseCode() != 200 = " + con.getResponseCode());
+                return null;
+            }
+
+            final String ips = StreamUtils.readAllBytesAsString(con.getInputStream(), "UTF-8");
+
+            if (BuildConfig.DEBUG)
+                Log.e("-----", "getIpByHost Get:" + ips);
+
+            if (TextUtils.isEmpty(ips))
+                return null;
+
+            //例子: http://119.29.29.29/d?dn=www.g.cn 返回的结果为
+            //203.208.39.248;203.208.39.239;203.208.39.247;203.208.39.255
+            final String[] ipList = ips.split(";");
+            if (ipList.length == 0)
+                return null;
+
+            if (BuildConfig.DEBUG)
+                Log.e("-----", "getIpByHost Result:" + ipList[0]);
+
+            return ipList[0];
+        }
+        catch (Exception e)
+        {
+            if (BuildConfig.DEBUG)
+                Log.e("-----", "getIpByHost Exception:" + host + e);
+
+            return null;
+        }
+        finally
+        {
+            if (con != null)
+                con.disconnect();
+        }
+    }
 
     @SuppressLint("StaticFieldLeak")
     private void checkIsOk(final Runnable runnable)
