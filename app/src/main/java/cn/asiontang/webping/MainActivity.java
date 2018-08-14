@@ -8,6 +8,7 @@ import android.app.Activity;
 import android.content.Context;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
@@ -24,7 +25,7 @@ import java.util.Map;
 public class MainActivity extends Activity
 {
     private final Map<String, List<String>> mUrlAndResult = new HashMap<>();
-    private final Map<String, String> mIpAndResult = new HashMap<>();
+    private final Map<String, StringBuilder> mIpAndResult = new HashMap<>();
     private EditText edtInput;
     private InnerAdapter mAdapter;
 
@@ -52,8 +53,21 @@ public class MainActivity extends Activity
         list.setAdapter(mAdapter = new InnerAdapter(this, mUrlAndResult));
     }
 
+    private void refresh()
+    {
+        runOnUiThread(new Runnable()
+        {
+            @Override
+            public void run()
+            {
+                mAdapter.refresh();
+            }
+        });
+    }
+
     private void startPing()
     {
+        mUrlAndResult.clear();
         for (String url : edtInput.getText().toString().split("\r\n"))
             mUrlAndResult.put(url, new ArrayList<String>());
 
@@ -75,46 +89,55 @@ public class MainActivity extends Activity
 
                             Ping.onAddress(ip).setTimeOutMillis(1000).setTimes(5).doPing(new Ping.PingListener()
                             {
+                                private StringBuilder getOutput()
+                                {
+                                    StringBuilder s = mIpAndResult.get(ip);
+                                    if (s == null)
+                                    {
+                                        s = new StringBuilder();
+                                        mIpAndResult.put(ip, s);
+                                    }
+                                    return s;
+                                }
+
                                 @Override
                                 public void onError(final Exception e)
                                 {
-                                    mIpAndResult.put(ip, e.toString());
-                                    runOnUiThread(new Runnable()
-                                    {
-                                        @Override
-                                        public void run()
-                                        {
-                                            mAdapter.refresh();
-                                        }
-                                    });
+                                    Log.e("Ping.onError", e.toString());
+
+                                    getOutput().append(e.toString());
+                                    getOutput().append("\n");
+
+                                    refresh();
                                 }
 
                                 @Override
-                                public void onFinished(final PingStats pingStats)
+                                public void onFinished(final PingStats e)
                                 {
-                                    mIpAndResult.put(ip, pingStats.toString());
-                                    runOnUiThread(new Runnable()
-                                    {
-                                        @Override
-                                        public void run()
-                                        {
-                                            mAdapter.refresh();
-                                        }
-                                    });
+                                    Log.e("Ping.onFinished", e.toString());
+
+                                    getOutput().append("\n");
+                                    getOutput().append("Ping 统计信息:").append("\n\t");
+                                    getOutput().append(" 数据包:");
+                                    getOutput().append(" 已发送=").append(e.getNoPings()).append(",");
+                                    getOutput().append(" 已接收=").append(e.getNoPings() - e.getPacketsLost()).append(",");
+                                    getOutput().append(" 丢失=").append(e.getPacketsLost());
+                                    getOutput().append("\n");
+
+                                    refresh();
                                 }
 
                                 @Override
-                                public void onResult(PingResult pingResult)
+                                public void onResult(PingResult e)
                                 {
-                                    mIpAndResult.put(ip, pingResult.toString());
-                                    runOnUiThread(new Runnable()
-                                    {
-                                        @Override
-                                        public void run()
-                                        {
-                                            mAdapter.refresh();
-                                        }
-                                    });
+                                    Log.e("Ping.onResult", e.toString());
+
+                                    getOutput().append("时间=").append((int) e.timeTaken).append("ms");
+                                    getOutput().append(" ");
+                                    getOutput().append("结果=").append(e.error);
+                                    getOutput().append("\n");
+
+                                    refresh();
                                 }
                             });
                         }
@@ -124,6 +147,7 @@ public class MainActivity extends Activity
                         e.printStackTrace();
                     }
                 }
+                refresh();
                 return null;
             }
         }.execute();
