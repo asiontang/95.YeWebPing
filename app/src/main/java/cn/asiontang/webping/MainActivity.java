@@ -40,15 +40,24 @@ public class MainActivity extends Activity
     private ProgressBar mProgress;
     private Handler mProgressHandler = new Handler(new Handler.Callback()
     {
+        public boolean isInvert;
+
         @Override
         public boolean handleMessage(final Message message)
         {
             if (mProgress == null)
                 return false;
+
             if (mProgress.getSecondaryProgress() >= mProgress.getMax())
-                mProgress.setSecondaryProgress(mProgress.getProgress());
+                isInvert = true;
+            else if (mProgress.getSecondaryProgress() <= mProgress.getProgress())
+                isInvert = false;
+
+            if (isInvert)
+                mProgress.setSecondaryProgress(mProgress.getSecondaryProgress() - 1);
             else
                 mProgress.setSecondaryProgress(mProgress.getSecondaryProgress() + 1);
+
             mProgressHandler.sendEmptyMessageDelayed(0, 500);
             return false;
         }
