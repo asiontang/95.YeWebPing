@@ -79,6 +79,7 @@ public class MainActivity extends Activity
         for (String url : edtInput.getText().toString().split("\r\n"))
             mUrlAndIpList.put(url, new ArrayList<String>());
 
+        refresh();
         new AsyncTask<Void, Void, Void>()
         {
             @Override
@@ -97,7 +98,7 @@ public class MainActivity extends Activity
 
                             mIpAndResult.put(ip, new StringBuilder("正在请求中\n\n"));
 
-                            Ping.onAddress(ip).setTimeOutMillis(200).setTimes(5).doPing(new Ping.PingListener()
+                            Ping.onAddress(ip).setTimeOutMillis(1000).setTimes(5).doPing(new Ping.PingListener()
                             {
                                 private StringBuilder getOutput()
                                 {
@@ -127,23 +128,27 @@ public class MainActivity extends Activity
                                     Log.e("Ping.onFinished", e.toString());
 
                                     //只要有一半的包接收到了就说明网络还算是通的.
+                                    boolean isReachable = false;
                                     if (!mUrlAndReachable.containsKey(url) || !mUrlAndReachable.get(url))
-                                        mUrlAndReachable.put(url, (double) e.getPacketsLost() / (double) e.getNoPings() < 0.5d);
+                                        mUrlAndReachable.put(url, isReachable = (double) e.getPacketsLost() / (double) e.getNoPings() < 0.5d);
 
                                     //统计平均响应时间最短的IP
-                                    Object[] ipAndAvg = mUrlAndTheFastestAvgIp.get(url);
-                                    if (ipAndAvg == null)
+                                    if (isReachable)
                                     {
-                                        ipAndAvg = new Object[]{ip, e.getAverageTimeTaken()};
-                                        mUrlAndTheFastestAvgIp.put(url, ipAndAvg);
-                                    }
-                                    else
-                                    {
-                                        final float lastAvg = (float) ipAndAvg[1];
-                                        if (e.getAverageTimeTaken() < lastAvg)
+                                        Object[] ipAndAvg = mUrlAndTheFastestAvgIp.get(url);
+                                        if (ipAndAvg == null)
                                         {
                                             ipAndAvg = new Object[]{ip, e.getAverageTimeTaken()};
                                             mUrlAndTheFastestAvgIp.put(url, ipAndAvg);
+                                        }
+                                        else
+                                        {
+                                            final float lastAvg = (float) ipAndAvg[1];
+                                            if (e.getAverageTimeTaken() < lastAvg)
+                                            {
+                                                ipAndAvg = new Object[]{ip, e.getAverageTimeTaken()};
+                                                mUrlAndTheFastestAvgIp.put(url, ipAndAvg);
+                                            }
                                         }
                                     }
 
