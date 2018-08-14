@@ -607,7 +607,12 @@ public class MainActivity extends Activity
 
             //
             final TextView text2 = convertView.findViewById(android.R.id.text2);
-            text2.setText(String.format("%d IP", mUrlAndIpList.get(url).size()));
+
+            //当使用HTTP检测时,不能叫IP了,应该叫做检测点.CheckPoint
+            if (MainActivity.this.<CheckBox>findViewById(R.id.ckbIsEnableHttpCheck).isChecked())
+                text2.setText(String.format("%d CP", mUrlAndIpList.get(url).size()));
+            else
+                text2.setText(String.format("%d IP", mUrlAndIpList.get(url).size()));
 
             //Ping通状态
             if (mUrlAndReachable.containsKey(url))
