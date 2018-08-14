@@ -157,7 +157,22 @@ public class MainActivity extends Activity
                                 @Override
                                 public void onError(final Exception e)
                                 {
-                                    mProgress.incrementProgressBy(1);
+                                    //更新进度,当进度完成时解冻UI.
+                                    runOnUiThread(new Runnable()
+                                    {
+                                        @Override
+                                        public void run()
+                                        {
+                                            mProgress.incrementProgressBy(1);
+
+                                            if (mProgress.getProgress() >= mProgress.getMax())
+                                            {
+                                                edtInput.setEnabled(true);
+                                                findViewById(android.R.id.button1).setEnabled(true);
+                                                mProgressHandler.removeMessages(0);
+                                            }
+                                        }
+                                    });
 
                                     Log.e("Ping.onError", e.toString());
 
