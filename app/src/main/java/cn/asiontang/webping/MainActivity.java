@@ -118,7 +118,9 @@ public class MainActivity extends Activity
         mIpAndResult.clear();
 
         for (String url : edtInput.getText().toString().split("\r\n"))
-            mUrlAndIpList.put(url, new ArrayList<String>());
+            //排除掉空网址.
+            if (url != null && url.trim().length() > 0)
+                mUrlAndIpList.put(url, new ArrayList<String>());
 
         refresh();
         new AsyncTask<Void, Void, Void>()
