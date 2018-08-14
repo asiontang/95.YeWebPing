@@ -132,7 +132,11 @@ public class PingNative
             address = host.getHostName();
         }
 
-        Process proc = runtime.exec(pingCommand + " -c 1 -w " + timeoutSeconds + " -w" + ttl + " " + address);
+        //Usage: ping [-aAbBdDfhLnOqrRUvV] [-c count] [-i interval] [-I interface]
+        //[-m mark] [-M pmtudisc_option] [-l preload] [-p pattern] [-Q tos]
+        //[-s packetsize] [-S sndbuf] [-t ttl] [-T timestamp_option]
+        //[-w deadline] [-W timeout] [hop1 ...] destination
+        Process proc = runtime.exec(pingCommand + " -c 1 -W " + timeoutSeconds + " -t " + ttl + " " + address);
         proc.waitFor();
         int exit = proc.exitValue();
         String pingError;
