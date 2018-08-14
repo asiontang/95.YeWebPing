@@ -1,26 +1,49 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:tools="http://schemas.android.com/tools"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:paddingBottom="8dp"
+        android:paddingEnd="16dp"
         android:paddingLeft="32dp"
         android:paddingRight="16dp"
+        android:paddingStart="32dp"
         android:paddingTop="8dp">
 
     <TextView
             android:id="@android:id/text1"
-            android:layout_width="0dp"
+            style="@android:style/TextAppearance.Medium"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
+            android:layout_alignParentLeft="true"
+            android:layout_alignParentStart="true"
+            android:layout_toLeftOf="@android:id/text2"
+            android:layout_toStartOf="@android:id/text2"
             tools:text="@string/app_name" />
 
     <TextView
             android:id="@android:id/text2"
+            style="@android:style/TextAppearance.Medium"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_alignParentEnd="true"
+            android:layout_alignParentRight="true"
+            android:layout_centerInParent="true"
             android:gravity="center"
             android:minEms="2"
             tools:text="3" />
-</LinearLayout>
+
+    <TextView
+            android:id="@android:id/message"
+            style="@android:style/TextAppearance.Small.Inverse"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentLeft="true"
+            android:layout_alignParentStart="true"
+            android:layout_below="@android:id/text1"
+            android:layout_marginTop="4dp"
+            android:layout_toLeftOf="@android:id/text2"
+            android:layout_toStartOf="@android:id/text2"
+            tools:text="123.123.123.123:平均=233ms" />
+</RelativeLayout>

@@ -4,9 +4,11 @@ import com.stealthcopter.networktools.Ping;
 import com.stealthcopter.networktools.ping.PingResult;
 import com.stealthcopter.networktools.ping.PingStats;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
 import android.graphics.Color;
+import android.graphics.Typeface;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
@@ -28,6 +30,7 @@ public class MainActivity extends Activity
     private final Map<String, List<String>> mUrlAndIpList = new HashMap<>();
     private final Map<String, Boolean> mUrlAndReachable = new HashMap<>();
     private final Map<String, StringBuilder> mIpAndResult = new HashMap<>();
+    private final Map<String, Object[]> mUrlAndTheFastestAvgIp = new HashMap<>();
     private EditText edtInput;
     private InnerAdapter mAdapter;
 
@@ -67,6 +70,7 @@ public class MainActivity extends Activity
         });
     }
 
+    @SuppressLint("StaticFieldLeak")
     private void startPing()
     {
         mUrlAndIpList.clear();
@@ -91,7 +95,7 @@ public class MainActivity extends Activity
                             final String ip = address.getHostAddress();
                             entry.getValue().add(ip);
 
-                            mIpAndResult.put(ip, new StringBuilder("正在请求中\n"));
+                            mIpAndResult.put(ip, new StringBuilder("正在请求中\n\n"));
 
                             Ping.onAddress(ip).setTimeOutMillis(200).setTimes(5).doPing(new Ping.PingListener()
                             {
@@ -125,6 +129,23 @@ public class MainActivity extends Activity
                                     //只要有一半的包接收到了就说明网络还算是通的.
                                     if (!mUrlAndReachable.containsKey(url) || !mUrlAndReachable.get(url))
                                         mUrlAndReachable.put(url, (double) e.getPacketsLost() / (double) e.getNoPings() < 0.5d);
+
+                                    //统计平均响应时间最短的IP
+                                    Object[] ipAndAvg = mUrlAndTheFastestAvgIp.get(url);
+                                    if (ipAndAvg == null)
+                                    {
+                                        ipAndAvg = new Object[]{ip, e.getAverageTimeTaken()};
+                                        mUrlAndTheFastestAvgIp.put(url, ipAndAvg);
+                                    }
+                                    else
+                                    {
+                                        final float lastAvg = (float) ipAndAvg[1];
+                                        if (e.getAverageTimeTaken() < lastAvg)
+                                        {
+                                            ipAndAvg = new Object[]{ip, e.getAverageTimeTaken()};
+                                            mUrlAndTheFastestAvgIp.put(url, ipAndAvg);
+                                        }
+                                    }
 
                                     getOutput().append("\n");
                                     getOutput().append("Ping 统计信息:").append("\n");
@@ -183,7 +204,16 @@ public class MainActivity extends Activity
         @Override
         public void getChildView(final int groupPosition, final int childPosition, final boolean isLastChild, final View convertView, final ViewGroup parent, final String ip)
         {
-            ((TextView) convertView.findViewById(android.R.id.text1)).setText(ip);
+            TextView text1 = convertView.findViewById(android.R.id.text1);
+            text1.setText(ip);
+
+            //显示最短的平均时间
+            final Object[] ipAndAvg = mUrlAndTheFastestAvgIp.get(/*url*/getGroup(groupPosition));
+            if (ipAndAvg != null && ipAndAvg[0].equals(ip))
+                text1.setTypeface(Typeface.defaultFromStyle(Typeface.BOLD));//加粗
+            else
+                text1.setTypeface(Typeface.defaultFromStyle(Typeface.NORMAL));
+
             ((TextView) convertView.findViewById(android.R.id.text2)).setText(mIpAndResult.get(ip));
         }
 
@@ -192,9 +222,11 @@ public class MainActivity extends Activity
         {
             ((TextView) convertView.findViewById(android.R.id.text1)).setText(url);
 
-            final TextView text2 = ((TextView) convertView.findViewById(android.R.id.text2));
-            text2.setText("" + mUrlAndIpList.get(url).size());
+            //
+            final TextView text2 = convertView.findViewById(android.R.id.text2);
+            text2.setText(String.format("%d IP", mUrlAndIpList.get(url).size()));
 
+            //Ping通状态
             if (mUrlAndReachable.containsKey(url))
             {
                 //当获取到值时,不是联通状态就是不通的状态.
@@ -205,6 +237,13 @@ public class MainActivity extends Activity
                 //获取不到时,说明正在请求中
                 text2.setBackgroundColor(Color.YELLOW);
             }
+
+            //显示最短的平均时间
+            final Object[] ipAndAvg = mUrlAndTheFastestAvgIp.get(url);
+            if (ipAndAvg == null)
+                convertView.<TextView>findViewById(android.R.id.message).setText(null);
+            else
+                convertView.<TextView>findViewById(android.R.id.message).setText(String.format("最快IP=%s 平均=%sms", ipAndAvg[0], ((int) (float) ipAndAvg[1])));
         }
     }
 }
