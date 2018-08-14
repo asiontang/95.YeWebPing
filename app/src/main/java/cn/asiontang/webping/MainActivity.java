@@ -520,7 +520,14 @@ public class MainActivity extends Activity
                             };
 
                             if (MainActivity.this.<CheckBox>findViewById(R.id.ckbIsEnableHttpCheck).isChecked())
-                                checkItByHttp(ip, mPingListener);
+                                new Thread()
+                                {
+                                    @Override
+                                    public void run()
+                                    {
+                                        checkItByHttp(ip, mPingListener);
+                                    }
+                                }.start();
                             else
                                 mPingList.add(Ping.onAddress(ip).setTimeOutMillis(timeout).setTimes(times).doPing(mPingListener));
                         }
