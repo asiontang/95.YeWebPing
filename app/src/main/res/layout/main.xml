@@ -14,11 +14,12 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text=""
+                android:background="@null"
                 android:gravity="top"
                 android:hint="可输入多行网址"
                 android:inputType="textMultiLine|textUri"
-                android:minLines="5" />
+                android:minLines="5"
+                android:text="" />
 
         <Button
                 android:id="@android:id/button1"
@@ -27,7 +28,13 @@
                 android:text="@android:string/yes" />
     </LinearLayout>
 
-    <ListView
+    <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="1dp"
+            android:background="#d2d2d2" />
+
+    <ExpandableListView
             android:id="@android:id/list"
             android:layout_width="match_parent"
             android:layout_height="match_parent" />
