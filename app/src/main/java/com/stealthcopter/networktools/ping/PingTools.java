@@ -73,17 +73,21 @@ public class PingTools
      */
     public static PingResult doPing(InetAddress ia, PingOptions pingOptions)
     {
-
-        //        // Try native ping first
-        //        try {
-        //            return PingTools.doNativePing(ia, pingOptions);
-        //        } catch (InterruptedException e) {
-        //            PingResult pingResult = new PingResult(ia);
-        //            pingResult.isReachable = false;
-        //            pingResult.error = "Interrupted";
-        //            return pingResult;
-        //        } catch (Exception ignored) {
-        //        }
+        // Try native ping first
+        try
+        {
+            return PingTools.doNativePing(ia, pingOptions);
+        }
+        catch (InterruptedException e)
+        {
+            PingResult pingResult = new PingResult(ia);
+            pingResult.isReachable = false;
+            pingResult.error = "Interrupted";
+            return pingResult;
+        }
+        catch (Exception ignored)
+        {
+        }
 
         // Fallback to java based ping
         return PingTools.doJavaPing(ia, pingOptions);
