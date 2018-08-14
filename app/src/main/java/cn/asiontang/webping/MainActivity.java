@@ -6,6 +6,7 @@ import com.stealthcopter.networktools.ping.PingStats;
 
 import android.app.Activity;
 import android.content.Context;
+import android.graphics.Color;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
@@ -24,7 +25,8 @@ import java.util.Map;
 
 public class MainActivity extends Activity
 {
-    private final Map<String, List<String>> mUrlAndResult = new HashMap<>();
+    private final Map<String, List<String>> mUrlAndIpList = new HashMap<>();
+    private final Map<String, Boolean> mUrlAndReachable = new HashMap<>();
     private final Map<String, StringBuilder> mIpAndResult = new HashMap<>();
     private EditText edtInput;
     private InnerAdapter mAdapter;
@@ -50,7 +52,7 @@ public class MainActivity extends Activity
             edtInput.setText("qq.com\r\nbaidu.com\r\ngoogle.com");
 
         ExpandableListView list = findViewById(android.R.id.list);
-        list.setAdapter(mAdapter = new InnerAdapter(this, mUrlAndResult));
+        list.setAdapter(mAdapter = new InnerAdapter(this, mUrlAndIpList));
     }
 
     private void refresh()
@@ -67,18 +69,18 @@ public class MainActivity extends Activity
 
     private void startPing()
     {
-        mUrlAndResult.clear();
+        mUrlAndIpList.clear();
         mIpAndResult.clear();
 
         for (String url : edtInput.getText().toString().split("\r\n"))
-            mUrlAndResult.put(url, new ArrayList<String>());
+            mUrlAndIpList.put(url, new ArrayList<String>());
 
         new AsyncTask<Void, Void, Void>()
         {
             @Override
             protected Void doInBackground(final Void... voids)
             {
-                for (final Map.Entry<String, List<String>> entry : mUrlAndResult.entrySet())
+                for (final Map.Entry<String, List<String>> entry : mUrlAndIpList.entrySet())
                 {
                     try
                     {
@@ -91,7 +93,7 @@ public class MainActivity extends Activity
 
                             mIpAndResult.put(ip, new StringBuilder("正在请求中\n"));
 
-                            Ping.onAddress(ip).setTimeOutMillis(1000).setTimes(5).doPing(new Ping.PingListener()
+                            Ping.onAddress(ip).setTimeOutMillis(200).setTimes(5).doPing(new Ping.PingListener()
                             {
                                 private StringBuilder getOutput()
                                 {
@@ -119,6 +121,10 @@ public class MainActivity extends Activity
                                 public void onFinished(final PingStats e)
                                 {
                                     Log.e("Ping.onFinished", e.toString());
+
+                                    //只要有一半的包接收到了就说明网络还算是通的.
+                                    if (!mUrlAndReachable.containsKey(url) || !mUrlAndReachable.get(url))
+                                        mUrlAndReachable.put(url, (double) e.getPacketsLost() / (double) e.getNoPings() < 0.5d);
 
                                     getOutput().append("\n");
                                     getOutput().append("Ping 统计信息:").append("\n");
@@ -185,7 +191,20 @@ public class MainActivity extends Activity
         public void getGroupView(final int groupPosition, final boolean isExpanded, final View convertView, final ViewGroup parent, final String url)
         {
             ((TextView) convertView.findViewById(android.R.id.text1)).setText(url);
-            ((TextView) convertView.findViewById(android.R.id.text2)).setText("" + mUrlAndResult.get(url).size());
+
+            final TextView text2 = ((TextView) convertView.findViewById(android.R.id.text2));
+            text2.setText("" + mUrlAndIpList.get(url).size());
+
+            if (mUrlAndReachable.containsKey(url))
+            {
+                //当获取到值时,不是联通状态就是不通的状态.
+                text2.setBackgroundColor(mUrlAndReachable.get(url) ? Color.GREEN : Color.RED);
+            }
+            else
+            {
+                //获取不到时,说明正在请求中
+                text2.setBackgroundColor(Color.YELLOW);
+            }
         }
     }
 }
