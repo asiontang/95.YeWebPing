@@ -83,7 +83,7 @@ public class MainActivity extends Activity
         try
         {
             long startTime = SystemClock.currentThreadTimeMillis();
-            final URL url = new URL("http://" + host);
+            final URL url = new URL(host.startsWith("http") ? host : "http://" + host);
             con = (HttpURLConnection) url.openConnection();
             con.setRequestMethod("POST");//通过GET会下载太多数据,用Head有的网站不支持,用POST貌似兼容性最好然后下发数据最少?
             con.setConnectTimeout(5 * 1000);
@@ -398,6 +398,12 @@ public class MainActivity extends Activity
 
                             mIpAndResult.put(ip, new StringBuilder("正在请求中\n\n"));
                         }
+                        //有的网站光通过IP是无法正常访问的.所以域名也尝试访问一遍.
+                        if (MainActivity.this.<CheckBox>findViewById(R.id.ckbIsEnableHttpCheck).isChecked())
+                        {
+                            entry.getValue().add("http://" + url);
+                            entry.getValue().add("https://" + url);
+                        }
                     }
                     //2.直接刷新界面以便快速响应UI.
                     runOnUiThread(new Runnable()
@@ -419,6 +425,7 @@ public class MainActivity extends Activity
                     for (final Map.Entry<String, List<String>> entry : mUrlAndIpList.entrySet())
                     {
                         final String url = entry.getKey();
+                        boolean isHadHttpCheckUrl = false;
                         for (final String ip : entry.getValue())
                         {
                             final Ping.PingListener mPingListener = new Ping.PingListener()
