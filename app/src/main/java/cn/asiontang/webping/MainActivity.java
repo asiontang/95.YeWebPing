@@ -85,7 +85,7 @@ public class MainActivity extends Activity
             long startTime = SystemClock.currentThreadTimeMillis();
             final URL url = new URL("http://" + host);
             con = (HttpURLConnection) url.openConnection();
-            con.setRequestMethod("HEAD");
+            con.setRequestMethod("POST");//通过GET会下载太多数据,用Head有的网站不支持,用POST貌似兼容性最好然后下发数据最少?
             con.setConnectTimeout(5 * 1000);
             con.setReadTimeout(5 * 1000);
             con.setRequestProperty("Connection", "Close");
