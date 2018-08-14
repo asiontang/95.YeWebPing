@@ -20,6 +20,7 @@ import android.widget.EditText;
 import android.widget.ExpandableListView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -126,7 +127,14 @@ public class MainActivity extends Activity
 
         refresh();
 
-        final int timeout = Integer.parseInt(this.<TextView>findViewById(R.id.edtTimeout).getText().toString());
+        int timeoutTmp = Integer.parseInt(this.<TextView>findViewById(R.id.edtTimeout).getText().toString());
+        if (timeoutTmp < 1000)
+        {
+            timeoutTmp = 1000;
+            this.<TextView>findViewById(R.id.edtTimeout).setText("1000");
+            Toast.makeText(this, "超时时间不能小于1000毫秒!", Toast.LENGTH_SHORT).show();
+        }
+        final int timeout = timeoutTmp;
         final int times = Integer.parseInt(this.<TextView>findViewById(R.id.edtTimes).getText().toString());
         new AsyncTask<Void, Void, Void>()
         {
