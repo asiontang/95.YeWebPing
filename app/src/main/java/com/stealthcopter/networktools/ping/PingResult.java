@@ -5,7 +5,8 @@ import java.net.InetAddress;
 /**
  * Created by mat on 09/12/15.
  */
-public class PingResult {
+public class PingResult
+{
     public final InetAddress ia;
     public boolean isReachable;
     public String error = null;
@@ -13,32 +14,39 @@ public class PingResult {
     public String fullString;
     public String result;
 
-    public PingResult(InetAddress ia) {
+    public PingResult(InetAddress ia)
+    {
         this.ia = ia;
     }
 
-    public boolean isReachable() {
-        return isReachable;
-    }
-
-    public boolean hasError() {
-        return error != null;
-    }
-
-    public float getTimeTaken() {
-        return timeTaken;
-    }
-
-    public String getError() {
-        return error;
-    }
-
-    public InetAddress getAddress() {
+    public InetAddress getAddress()
+    {
         return ia;
     }
 
+    public String getError()
+    {
+        return error;
+    }
+
+    public float getTimeTaken()
+    {
+        return timeTaken;
+    }
+
+    public boolean hasError()
+    {
+        return error != null;
+    }
+
+    public boolean isReachable()
+    {
+        return isReachable;
+    }
+
     @Override
-    public String toString() {
+    public String toString()
+    {
         return "PingResult{" +
                 "ia=" + ia +
                 ", isReachable=" + isReachable +

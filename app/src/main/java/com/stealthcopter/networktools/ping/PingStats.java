@@ -5,7 +5,8 @@ import java.net.InetAddress;
 /**
  * Created by mat on 09/12/15.
  */
-public class PingStats {
+public class PingStats
+{
     private final InetAddress ia;
     private final long noPings;
     private final long packetsLost;
@@ -14,7 +15,8 @@ public class PingStats {
     private final float maxTimeTaken;
     private final boolean isReachable;
 
-    public PingStats(InetAddress ia, long noPings, long packetsLost, float totalTimeTaken, float minTimeTaken, float maxTimeTaken) {
+    public PingStats(InetAddress ia, long noPings, long packetsLost, float totalTimeTaken, float minTimeTaken, float maxTimeTaken)
+    {
         this.ia = ia;
         this.noPings = noPings;
         this.packetsLost = packetsLost;
@@ -24,48 +26,59 @@ public class PingStats {
         this.isReachable = noPings - packetsLost > 0;
     }
 
-    public InetAddress getAddress() {
+    public InetAddress getAddress()
+    {
         return ia;
     }
 
-    public long getNoPings() {
-        return noPings;
-    }
-
-    public long getPacketsLost() {
-        return packetsLost;
-    }
-
-    public float getAverageTimeTaken() {
+    public float getAverageTimeTaken()
+    {
         return averageTimeTaken;
     }
 
-    public float getMinTimeTaken() {
-        return minTimeTaken;
-    }
-
-    public float getMaxTimeTaken() {
-        return maxTimeTaken;
-    }
-
-    public boolean isReachable() {
-        return isReachable;
-    }
-
-    public long getAverageTimeTakenMillis() {
+    public long getAverageTimeTakenMillis()
+    {
         return (long) (averageTimeTaken * 1000);
     }
 
-    public long getMinTimeTakenMillis() {
-        return (long) (minTimeTaken * 1000);
+    public float getMaxTimeTaken()
+    {
+        return maxTimeTaken;
     }
 
-    public long getMaxTimeTakenMillis() {
+    public long getMaxTimeTakenMillis()
+    {
         return (long) (maxTimeTaken * 1000);
     }
 
+    public float getMinTimeTaken()
+    {
+        return minTimeTaken;
+    }
+
+    public long getMinTimeTakenMillis()
+    {
+        return (long) (minTimeTaken * 1000);
+    }
+
+    public long getNoPings()
+    {
+        return noPings;
+    }
+
+    public long getPacketsLost()
+    {
+        return packetsLost;
+    }
+
+    public boolean isReachable()
+    {
+        return isReachable;
+    }
+
     @Override
-    public String toString() {
+    public String toString()
+    {
         return "PingStats{" +
                 "ia=" + ia +
                 ", noPings=" + noPings +

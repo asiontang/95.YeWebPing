@@ -8,10 +8,12 @@ import java.net.SocketTimeoutException;
 /**
  * Created by mat on 13/12/15.
  */
-public class PortScanUDP {
+public class PortScanUDP
+{
 
     // This class is not to be instantiated
-    private PortScanUDP() {
+    private PortScanUDP()
+    {
     }
 
     /**
@@ -23,9 +25,11 @@ public class PortScanUDP {
      * @param timeoutMillis - timeout
      * @return - true if port is open, false if not or unknown
      */
-    public static boolean scanAddress(InetAddress ia, int portNo, int timeoutMillis) {
+    public static boolean scanAddress(InetAddress ia, int portNo, int timeoutMillis)
+    {
 
-        try {
+        try
+        {
             byte[] bytes = new byte[128];
             DatagramPacket dp = new DatagramPacket(bytes, bytes.length);
 
@@ -37,9 +41,13 @@ public class PortScanUDP {
             ds.receive(dp);
             ds.close();
 
-        } catch (SocketTimeoutException e) {
+        }
+        catch (SocketTimeoutException e)
+        {
             return true;
-        } catch (Exception ignore) {
+        }
+        catch (Exception ignore)
+        {
 
         }
 

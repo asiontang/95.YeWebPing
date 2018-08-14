@@ -11,7 +11,8 @@ import java.util.regex.Pattern;
 /**
  * Created by mat on 14/12/15.
  */
-public class IPTools {
+public class IPTools
+{
 
     /**
      * Ip matching patterns from
@@ -32,29 +33,15 @@ public class IPTools {
                     "^((?:[0-9A-Fa-f]{1,4}(?::[0-9A-Fa-f]{1,4})*)?)::((?:[0-9A-Fa-f]{1,4}(?::[0-9A-Fa-f]{1,4})*)?)$");
 
     // This class is not to be instantiated
-    private IPTools() {
-    }
-
-    public static boolean isIPv4Address(final String address) {
-        return address != null && IPV4_PATTERN.matcher(address).matches();
-    }
-
-    public static boolean isIPv6StdAddress(final String address) {
-        return address != null && IPV6_STD_PATTERN.matcher(address).matches();
-    }
-
-    public static boolean isIPv6HexCompressedAddress(final String address) {
-        return address != null && IPV6_HEX_COMPRESSED_PATTERN.matcher(address).matches();
-    }
-
-    public static boolean isIPv6Address(final String address) {
-        return address != null && (isIPv6StdAddress(address) || isIPv6HexCompressedAddress(address));
+    private IPTools()
+    {
     }
 
     /**
      * @return The first local IPv4 address, or null
      */
-    public static InetAddress getLocalIPv4Address() {
+    public static InetAddress getLocalIPv4Address()
+    {
         ArrayList<InetAddress> localAddresses = getLocalIPv4Addresses();
         return localAddresses.size() > 0 ? localAddresses.get(0) : null;
     }
@@ -62,31 +49,57 @@ public class IPTools {
     /**
      * @return The list of all IPv4 addresses found
      */
-    public static ArrayList<InetAddress> getLocalIPv4Addresses() {
+    public static ArrayList<InetAddress> getLocalIPv4Addresses()
+    {
 
         ArrayList<InetAddress> foundAddresses = new ArrayList<>();
 
         Enumeration<NetworkInterface> ifaces;
-        try {
+        try
+        {
             ifaces = NetworkInterface.getNetworkInterfaces();
 
-            while (ifaces.hasMoreElements()) {
+            while (ifaces.hasMoreElements())
+            {
                 NetworkInterface iface = ifaces.nextElement();
                 Enumeration<InetAddress> addresses = iface.getInetAddresses();
 
-                while (addresses.hasMoreElements()) {
+                while (addresses.hasMoreElements())
+                {
                     InetAddress addr = addresses.nextElement();
-                    if (addr instanceof Inet4Address && !addr.isLoopbackAddress()) {
+                    if (addr instanceof Inet4Address && !addr.isLoopbackAddress())
+                    {
                         foundAddresses.add(addr);
                     }
                 }
             }
-        } catch (SocketException e) {
+        }
+        catch (SocketException e)
+        {
             e.printStackTrace();
         }
         return foundAddresses;
     }
 
+    public static boolean isIPv4Address(final String address)
+    {
+        return address != null && IPV4_PATTERN.matcher(address).matches();
+    }
+
+    public static boolean isIPv6Address(final String address)
+    {
+        return address != null && (isIPv6StdAddress(address) || isIPv6HexCompressedAddress(address));
+    }
+
+    public static boolean isIPv6HexCompressedAddress(final String address)
+    {
+        return address != null && IPV6_HEX_COMPRESSED_PATTERN.matcher(address).matches();
+    }
+
+    public static boolean isIPv6StdAddress(final String address)
+    {
+        return address != null && IPV6_STD_PATTERN.matcher(address).matches();
+    }
 
     /**
      * Check if the provided ip address refers to the localhost
@@ -96,7 +109,21 @@ public class IPTools {
      * @param addr - address to check
      * @return - true if ip address is self
      */
-    public static boolean isIpAddressLocalhost(InetAddress addr) {
+    public static boolean isIpAddressLocalNetwork(InetAddress addr)
+    {
+        return addr != null && addr.isSiteLocalAddress();
+    }
+
+    /**
+     * Check if the provided ip address refers to the localhost
+     *
+     * https://stackoverflow.com/a/2406819/315998
+     *
+     * @param addr - address to check
+     * @return - true if ip address is self
+     */
+    public static boolean isIpAddressLocalhost(InetAddress addr)
+    {
         if (addr == null) return false;
 
         // Check if the address is a valid special local or loop back
@@ -104,23 +131,14 @@ public class IPTools {
             return true;
 
         // Check if the address is defined on any interface
-        try {
+        try
+        {
             return NetworkInterface.getByInetAddress(addr) != null;
-        } catch (SocketException e) {
+        }
+        catch (SocketException e)
+        {
             return false;
         }
-    }
-
-    /**
-     * Check if the provided ip address refers to the localhost
-     *
-     * https://stackoverflow.com/a/2406819/315998
-     *
-     * @param addr - address to check
-     * @return - true if ip address is self
-     */
-    public static boolean isIpAddressLocalNetwork(InetAddress addr) {
-        return addr != null && addr.isSiteLocalAddress();
     }
 
 

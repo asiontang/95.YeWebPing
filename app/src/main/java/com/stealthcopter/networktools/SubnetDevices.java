@@ -14,7 +14,8 @@ import java.util.concurrent.TimeUnit;
 /**
  * Created by mat on 03/11/17.
  */
-public class SubnetDevices {
+public class SubnetDevices
+{
     private int noThreads = 100;
 
     private ArrayList<String> addresses;
@@ -24,48 +25,29 @@ public class SubnetDevices {
     private boolean cancelled = false;
 
     // This class is not to be instantiated
-    private SubnetDevices() {
-    }
-
-    public interface OnSubnetDeviceFound {
-        void onDeviceFound(Device device);
-
-        void onFinished(ArrayList<Device> devicesFound);
-    }
-
-    /**
-     * Find devices on the subnet working from the local device ip address
-     *
-     * @return - this for chaining
-     */
-    public static SubnetDevices fromLocalAddress() {
-        InetAddress ipv4 = IPTools.getLocalIPv4Address();
-
-        if (ipv4 == null) {
-            throw new IllegalAccessError("Could not access local ip address");
-        }
-
-        return fromIPAddress(ipv4.getHostAddress());
+    private SubnetDevices()
+    {
     }
 
     /**
      * @param inetAddress - an ip address in the subnet
-     *
      * @return - this for chaining
      */
-    public static SubnetDevices fromIPAddress(InetAddress inetAddress) {
+    public static SubnetDevices fromIPAddress(InetAddress inetAddress)
+    {
         return fromIPAddress(inetAddress.getHostAddress());
     }
 
     /**
      * @param ipAddress - the ipAddress string of any device in the subnet i.e. "192.168.0.1"
      *                  the final part will be ignored
-     *
      * @return - this for chaining
      */
-    public static SubnetDevices fromIPAddress(final String ipAddress) {
+    public static SubnetDevices fromIPAddress(final String ipAddress)
+    {
 
-        if (!IPTools.isIPv4Address(ipAddress)) {
+        if (!IPTools.isIPv4Address(ipAddress))
+        {
             throw new IllegalArgumentException("Invalid IP Address");
         }
 
@@ -78,8 +60,10 @@ public class SubnetDevices {
 
         // Add all missing addresses in subnet
         String segment = ipAddress.substring(0, ipAddress.lastIndexOf(".") + 1);
-        for (int j = 0; j < 255; j++) {
-            if (!subnetDevice.addresses.contains(segment + j)) {
+        for (int j = 0; j < 255; j++)
+        {
+            if (!subnetDevice.addresses.contains(segment + j))
+            {
                 subnetDevice.addresses.add(segment + j);
             }
         }
@@ -88,13 +72,12 @@ public class SubnetDevices {
 
     }
 
-
     /**
      * @param ipAddresses - the ipAddresses of devices to be checked
-     *
      * @return - this for chaining
      */
-    public static SubnetDevices fromIPList(final List<String> ipAddresses) {
+    public static SubnetDevices fromIPList(final List<String> ipAddresses)
+    {
 
         SubnetDevices subnetDevice = new SubnetDevices();
 
@@ -107,38 +90,27 @@ public class SubnetDevices {
     }
 
     /**
-     * @param noThreads set the number of threads to work with, note we default to a large number
-     *                  as these requests are network heavy not cpu heavy.
-     *
-     * @throws IllegalArgumentException - if invalid number of threads requested
+     * Find devices on the subnet working from the local device ip address
      *
      * @return - this for chaining
      */
-    public SubnetDevices setNoThreads(int noThreads) throws IllegalArgumentException {
-        if (noThreads < 1) throw new IllegalArgumentException("Cannot have less than 1 thread");
-        this.noThreads = noThreads;
-        return this;
-    }
+    public static SubnetDevices fromLocalAddress()
+    {
+        InetAddress ipv4 = IPTools.getLocalIPv4Address();
 
-    /**
-     * Sets the timeout for each address we try to ping
-     *
-     * @param timeOutMillis - timeout in milliseconds for each ping
-     *
-     * @return this object to allow chaining
-     *
-     * @throws IllegalArgumentException - if timeout is less than zero
-     */
-    public SubnetDevices setTimeOutMillis(int timeOutMillis) throws IllegalArgumentException {
-        if (timeOutMillis < 0) throw new IllegalArgumentException("Timeout cannot be less than 0");
-        this.timeOutMillis = timeOutMillis;
-        return this;
+        if (ipv4 == null)
+        {
+            throw new IllegalAccessError("Could not access local ip address");
+        }
+
+        return fromIPAddress(ipv4.getHostAddress());
     }
 
     /**
      * Cancel a running scan
      */
-    public void cancel() {
+    public void cancel()
+    {
         this.cancelled = true;
     }
 
@@ -148,20 +120,24 @@ public class SubnetDevices {
      * @param listener - to pass on the results
      * @return this object so we can call cancel on it if needed
      */
-    public SubnetDevices findDevices(final OnSubnetDeviceFound listener) {
+    public SubnetDevices findDevices(final OnSubnetDeviceFound listener)
+    {
 
         this.listener = listener;
 
         cancelled = false;
         devicesFound = new ArrayList<>();
 
-        new Thread(new Runnable() {
+        new Thread(new Runnable()
+        {
             @Override
-            public void run() {
+            public void run()
+            {
 
                 ExecutorService executor = Executors.newFixedThreadPool(noThreads);
 
-                for (final String add : addresses) {
+                for (final String add : addresses)
+                {
                     Runnable worker = new SubnetDeviceFinderRunnable(add);
                     executor.execute(worker);
                 }
@@ -170,9 +146,12 @@ public class SubnetDevices {
                 // and finish all existing threads in the queue
                 executor.shutdown();
                 // Wait until all threads are finish
-                try {
+                try
+                {
                     executor.awaitTermination(1, TimeUnit.HOURS);
-                } catch (InterruptedException e) {
+                }
+                catch (InterruptedException e)
+                {
                     e.printStackTrace();
                 }
 
@@ -184,33 +163,75 @@ public class SubnetDevices {
         return this;
     }
 
-    private synchronized void subnetDeviceFound(Device device) {
+    /**
+     * @param noThreads set the number of threads to work with, note we default to a large number
+     *                  as these requests are network heavy not cpu heavy.
+     * @return - this for chaining
+     * @throws IllegalArgumentException - if invalid number of threads requested
+     */
+    public SubnetDevices setNoThreads(int noThreads) throws IllegalArgumentException
+    {
+        if (noThreads < 1) throw new IllegalArgumentException("Cannot have less than 1 thread");
+        this.noThreads = noThreads;
+        return this;
+    }
+
+    /**
+     * Sets the timeout for each address we try to ping
+     *
+     * @param timeOutMillis - timeout in milliseconds for each ping
+     * @return this object to allow chaining
+     * @throws IllegalArgumentException - if timeout is less than zero
+     */
+    public SubnetDevices setTimeOutMillis(int timeOutMillis) throws IllegalArgumentException
+    {
+        if (timeOutMillis < 0) throw new IllegalArgumentException("Timeout cannot be less than 0");
+        this.timeOutMillis = timeOutMillis;
+        return this;
+    }
+
+    private synchronized void subnetDeviceFound(Device device)
+    {
         devicesFound.add(device);
         listener.onDeviceFound(device);
     }
 
-    public class SubnetDeviceFinderRunnable implements Runnable {
+    public interface OnSubnetDeviceFound
+    {
+        void onDeviceFound(Device device);
+
+        void onFinished(ArrayList<Device> devicesFound);
+    }
+
+    public class SubnetDeviceFinderRunnable implements Runnable
+    {
         private final String address;
 
-        SubnetDeviceFinderRunnable(String address) {
+        SubnetDeviceFinderRunnable(String address)
+        {
             this.address = address;
         }
 
         @Override
-        public void run() {
+        public void run()
+        {
 
             if (cancelled) return;
 
-            try {
+            try
+            {
                 InetAddress ia = InetAddress.getByName(address);
                 PingResult pingResult = Ping.onAddress(ia).setTimeOutMillis(timeOutMillis).doPing();
-                if (pingResult.isReachable) {
+                if (pingResult.isReachable)
+                {
                     Device device = new Device(ia);
                     device.mac = ARPInfo.getMACFromIPAddress(ia.getHostAddress());
                     device.time = pingResult.timeTaken;
                     subnetDeviceFound(device);
                 }
-            } catch (UnknownHostException e) {
+            }
+            catch (UnknownHostException e)
+            {
                 e.printStackTrace();
             }
         }
