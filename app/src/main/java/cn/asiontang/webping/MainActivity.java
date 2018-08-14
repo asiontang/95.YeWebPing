@@ -115,7 +115,9 @@ public class MainActivity extends Activity
         mProgress.setMax(100);
 
         mUrlAndIpList.clear();
+        mUrlAndReachable.clear();
         mIpAndResult.clear();
+        mUrlAndTheFastestAvgIp.clear();
 
         for (String url : edtInput.getText().toString().split("\r\n"))
             //排除掉空网址.
