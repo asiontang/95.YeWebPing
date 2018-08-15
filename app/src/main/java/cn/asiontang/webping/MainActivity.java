@@ -25,6 +25,7 @@ import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.CheckBox;
+import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.ExpandableListView;
 import android.widget.ProgressBar;
@@ -76,32 +77,31 @@ public class MainActivity extends Activity
         }
     });
     private TextView btnDoit;
+    private CheckBox ckbIsEnableHttpCheck;
+    private EditText edtTimeout;
+    private EditText edtTimes;
 
-    public static void checkItByHttp(final String host, final Ping.PingListener mPingListener)
+    public static boolean checkItByHttp(final String host, final int timeOut, final Ping.PingListener mPingListener)
     {
         HttpURLConnection con = null;
         try
         {
-            long startTime = SystemClock.currentThreadTimeMillis();
             final URL url = new URL(host.startsWith("http") ? host : "http://" + host);
             con = (HttpURLConnection) url.openConnection();
             con.setRequestMethod("POST");//通过GET会下载太多数据,用Head有的网站不支持,用POST貌似兼容性最好然后下发数据最少?
-            con.setConnectTimeout(5 * 1000);
-            con.setReadTimeout(5 * 1000);
+            con.setConnectTimeout(timeOut);
+            con.setReadTimeout(timeOut);
             con.setRequestProperty("Connection", "Close");
             con.connect();
 
             if (BuildConfig.DEBUG)
                 Log.e("-----", "getIpByHost con.getResponseCode() != 200 = " + con.getResponseCode());
-            if (con.getResponseCode() < 400)
-            {
-                final PingResult pingResult = new PingResult(null);
-                pingResult.fullString = "con.getResponseCode()=" + con.getResponseCode();
-                mPingListener.onResult(pingResult);
-                mPingListener.onFinished(new PingStats(null, 1, 0, SystemClock.currentThreadTimeMillis() - startTime, 0, 0));
-                return;
-            }
-            mPingListener.onFinished(new PingStats(null, 0, 1, SystemClock.currentThreadTimeMillis() - startTime, 0, 0));
+
+            final PingResult pingResult = new PingResult(null);
+            pingResult.fullString = "con.getResponseCode()=" + con.getResponseCode();
+            mPingListener.onResult(pingResult);
+
+            return true;
         }
         catch (Exception e)
         {
@@ -109,6 +109,8 @@ public class MainActivity extends Activity
 
             if (BuildConfig.DEBUG)
                 Log.e("-----", "getIpByHost Exception:" + host + e);
+
+            return false;
         }
         finally
         {
@@ -208,14 +210,14 @@ public class MainActivity extends Activity
             {
                 try
                 {
-                    if (Integer.parseInt(MainActivity.this.<TextView>findViewById(R.id.edtTimeout).getText().toString()) < 1000)
+                    if (Integer.parseInt(edtTimeout.getText().toString()) < 1000)
                     {
                         runOnUiThread(new Runnable()
                         {
                             @Override
                             public void run()
                             {
-                                MainActivity.this.<TextView>findViewById(R.id.edtTimeout).setText("1000");
+                                edtTimeout.setText("1000");
                                 Toast.makeText(MainActivity.this, "超时时间不能小于1000毫秒!", Toast.LENGTH_SHORT).show();
                             }
                         });
@@ -244,9 +246,9 @@ public class MainActivity extends Activity
                         @Override
                         public void run()
                         {
-                            Toast.makeText(MainActivity.this, "出现未知异常", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(MainActivity.this, "Check出现未知异常", Toast.LENGTH_SHORT).show();
                             new AlertDialog.Builder(MainActivity.this)
-                                    .setTitle("出现未知异常")
+                                    .setTitle("Check出现未知异常")
                                     .setMessage(e.toString())
                                     .setNegativeButton(android.R.string.ok, null)
                                     .show();
@@ -271,6 +273,28 @@ public class MainActivity extends Activity
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.main);
+
+        ckbIsEnableHttpCheck = findViewById(R.id.ckbIsEnableHttpCheck);
+        ckbIsEnableHttpCheck.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener()
+        {
+            @Override
+            public void onCheckedChanged(final CompoundButton compoundButton, final boolean isCheckd)
+            {
+                if (isCheckd)
+                {
+                    edtTimeout.setText("5000");
+                    edtTimes.setText("2");
+                }
+                else
+                {
+                    edtTimeout.setText("1000");
+                    edtTimes.setText("5");
+                }
+            }
+        });
+
+        edtTimeout = findViewById(R.id.edtTimeout);
+        edtTimes = findViewById(R.id.edtTimes);
 
         edtInput = findViewById(android.R.id.input);
         if (BuildConfig.DEBUG)
@@ -370,8 +394,8 @@ public class MainActivity extends Activity
 
         refresh();
 
-        final int timeout = Integer.parseInt(this.<TextView>findViewById(R.id.edtTimeout).getText().toString());
-        final int times = Integer.parseInt(this.<TextView>findViewById(R.id.edtTimes).getText().toString());
+        final int timeout = Integer.parseInt(edtTimeout.getText().toString());
+        final int times = Integer.parseInt(edtTimes.getText().toString());
         new AsyncTask<Void, Void, Void>()
         {
             @Override
@@ -399,7 +423,7 @@ public class MainActivity extends Activity
                             mIpAndResult.put(ip, new StringBuilder("正在请求中\n\n"));
                         }
                         //有的网站光通过IP是无法正常访问的.所以域名也尝试访问一遍.
-                        if (MainActivity.this.<CheckBox>findViewById(R.id.ckbIsEnableHttpCheck).isChecked())
+                        if (ckbIsEnableHttpCheck.isChecked())
                         {
                             entry.getValue().add("http://" + url);
                             entry.getValue().add("https://" + url);
@@ -526,13 +550,21 @@ public class MainActivity extends Activity
                                 }
                             };
 
-                            if (MainActivity.this.<CheckBox>findViewById(R.id.ckbIsEnableHttpCheck).isChecked())
+                            if (ckbIsEnableHttpCheck.isChecked())
                                 new Thread()
                                 {
                                     @Override
                                     public void run()
                                     {
-                                        checkItByHttp(ip, mPingListener);
+                                        long startTime = SystemClock.currentThreadTimeMillis();
+                                        int count = Integer.parseInt(edtTimes.getText().toString());
+                                        int successCount = 0;
+                                        for (int i = 0; i < count; i++)
+                                        {
+                                            if (checkItByHttp(ip, Integer.parseInt(edtTimeout.getText().toString()), mPingListener))
+                                                successCount++;
+                                        }
+                                        mPingListener.onFinished(new PingStats(null, count, count - successCount, SystemClock.currentThreadTimeMillis() - startTime, 0, 0));
                                     }
                                 }.start();
                             else
@@ -547,9 +579,9 @@ public class MainActivity extends Activity
                         @Override
                         public void run()
                         {
-                            Toast.makeText(MainActivity.this, "出现未知异常", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(MainActivity.this, "Ping出现未知异常", Toast.LENGTH_SHORT).show();
                             new AlertDialog.Builder(MainActivity.this)
-                                    .setTitle("出现未知异常")
+                                    .setTitle("Ping出现未知异常")
                                     .setMessage(e.toString())
                                     .setNegativeButton(android.R.string.ok, null)
                                     .show();
@@ -609,7 +641,7 @@ public class MainActivity extends Activity
             final TextView text2 = convertView.findViewById(android.R.id.text2);
 
             //当使用HTTP检测时,不能叫IP了,应该叫做检测点.CheckPoint
-            if (MainActivity.this.<CheckBox>findViewById(R.id.ckbIsEnableHttpCheck).isChecked())
+            if (ckbIsEnableHttpCheck.isChecked())
                 text2.setText(String.format("%d CP", mUrlAndIpList.get(url).size()));
             else
                 text2.setText(String.format("%d IP", mUrlAndIpList.get(url).size()));
