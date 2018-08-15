@@ -13,6 +13,7 @@ import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.os.AsyncTask;
@@ -50,6 +51,7 @@ public class MainActivity extends Activity
     private final Map<String, StringBuilder> mIpAndResult = new HashMap<>();
     private final Map<String, Object[]> mUrlAndTheFastestAvgIp = new HashMap<>();
     private final List<Ping> mPingList = new ArrayList<>();
+    private SharedPreferences mSharedPreferences;
     private EditText edtInput;
     private InnerAdapter mAdapter;
     private ProgressBar mProgress;
@@ -81,6 +83,7 @@ public class MainActivity extends Activity
     private CheckBox ckbIsEnableHttpCheck;
     private EditText edtTimeout;
     private EditText edtTimes;
+    private EditText edtDNS;
 
     public static boolean checkItByHttp(final String host, final int timeOut, final Ping.PingListener mPingListener)
     {
@@ -128,6 +131,7 @@ public class MainActivity extends Activity
      * @param host 域名(如www.aliyun.com)
      * @return 域名对应的解析结果 127.1.1.1
      */
+    @SuppressWarnings("all")
     public static String getIpByHost(String host)
     {
         //当传递进来的Host不是正确的Host时,直接返回它自己.
@@ -217,6 +221,7 @@ public class MainActivity extends Activity
                     {
                         runOnUiThread(new Runnable()
                         {
+                            @SuppressLint("SetTextI18n")
                             @Override
                             public void run()
                             {
@@ -275,11 +280,16 @@ public class MainActivity extends Activity
     {
         super.onCreate(savedInstanceState);
 
+        mSharedPreferences = getSharedPreferences("AsionTang", MODE_PRIVATE);
+
         setContentView(R.layout.main);
+
+        edtDNS = findViewById(R.id.edtDNS);
 
         ckbIsEnableHttpCheck = findViewById(R.id.ckbIsEnableHttpCheck);
         ckbIsEnableHttpCheck.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener()
         {
+            @SuppressLint("SetTextI18n")
             @Override
             public void onCheckedChanged(final CompoundButton compoundButton, final boolean isCheckd)
             {
@@ -297,16 +307,10 @@ public class MainActivity extends Activity
         });
 
         edtTimeout = findViewById(R.id.edtTimeout);
+
         edtTimes = findViewById(R.id.edtTimes);
 
         edtInput = findViewById(android.R.id.input);
-        //将所有WWW都去掉,能加快测试速度,因为一般网站都会301,302跳转到www站点,这有利于减少GET数据量.
-        edtInput.setText("taobao.com\r\n" +
-                "baidu.com\r\n" +
-                "qq.com\r\n" +
-                "google.com\r\n" +
-                "tumblr.com\r\n" +
-                "inoreader.com\r\n");
 
         btnDoit = findViewById(android.R.id.button1);
         btnDoit.setOnClickListener(new View.OnClickListener()
@@ -322,6 +326,22 @@ public class MainActivity extends Activity
 
         ExpandableListView list = findViewById(android.R.id.list);
         list.setAdapter(mAdapter = new InnerAdapter(this, mUrlAndIpList));
+
+        restoreUserInfo();
+    }
+
+    @Override
+    protected void onPause()
+    {
+        mSharedPreferences.edit()
+                .putString("edtDNS", edtDNS.getText().toString())
+                .putBoolean("ckbIsEnableHttpCheck", ckbIsEnableHttpCheck.isChecked())
+                .putString("edtTimeout", edtTimeout.getText().toString())
+                .putString("edtTimes", edtTimes.getText().toString())
+                .putString("edtInput", edtInput.getText().toString())
+                .apply();
+
+        super.onPause();
     }
 
     private void refresh()
@@ -349,6 +369,27 @@ public class MainActivity extends Activity
         mProgress.setProgress(mProgress.getMax());
 
         mProgressHandler.removeMessages(0);
+    }
+
+    @SuppressLint("SetTextI18n")
+    private void restoreUserInfo()
+    {
+        edtDNS.setText(mSharedPreferences.getString("edtDNS", "8.8.8.8"));
+
+        ckbIsEnableHttpCheck.setChecked(mSharedPreferences.getBoolean("ckbIsEnableHttpCheck", false));
+
+        edtTimeout.setText(mSharedPreferences.getString("edtTimeout", "1000"));
+
+        edtTimes.setText(mSharedPreferences.getString("edtTimes", "5"));
+
+        //将所有WWW都去掉,能加快测试速度,因为一般网站都会301,302跳转到www站点,这有利于减少GET数据量.
+        edtInput.setText(mSharedPreferences.getString("edtInput",
+                "taobao.com\r\n" +
+                        "baidu.com\r\n" +
+                        "qq.com\r\n" +
+                        "google.com\r\n" +
+                        "tumblr.com\r\n" +
+                        "inoreader.com\r\n"));
     }
 
     @SuppressLint("StaticFieldLeak")
@@ -495,7 +536,7 @@ public class MainActivity extends Activity
                     //qiniu/happy-dns-android: dns library for android
                     //https://github.com/qiniu/happy-dns-android
                     IResolver[] resolvers = new IResolver[1];
-                    resolvers[0] = new Resolver(InetAddress.getByName(MainActivity.this.<TextView>findViewById(R.id.edtDNS).getText().toString())); //自定义 DNS 服务器地址
+                    resolvers[0] = new Resolver(InetAddress.getByName(edtDNS.getText().toString())); //自定义 DNS 服务器地址
                     //resolvers[1] = AndroidDnsServer.defaultResolver(); //系统默认 DNS 服务器
                     DnsManager dns = new DnsManager(NetworkInfo.normal, resolvers);
 
@@ -679,7 +720,7 @@ public class MainActivity extends Activity
 
     class InnerAdapter extends BaseExpandableListAdapterEx<String, String>
     {
-        public InnerAdapter(final Context context, final Map<String, List<String>> items)
+        InnerAdapter(final Context context, final Map<String, List<String>> items)
         {
             super(context, R.layout.url, R.layout.ip, items);
         }
@@ -700,6 +741,7 @@ public class MainActivity extends Activity
             ((TextView) convertView.findViewById(android.R.id.text2)).setText(mIpAndResult.get(ip));
         }
 
+        @SuppressLint("DefaultLocale")
         @Override
         public void getGroupView(final int groupPosition, final boolean isExpanded, final View convertView, final ViewGroup parent, final String url)
         {
