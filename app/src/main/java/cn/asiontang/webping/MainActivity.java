@@ -38,6 +38,7 @@ import java.net.InetAddress;
 import java.net.MalformedURLException;
 import java.net.SocketTimeoutException;
 import java.net.URL;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -246,6 +247,18 @@ public class MainActivity extends Activity
                         });
                         return false;
                     }
+                    return true;
+                }
+                catch (final UnknownHostException e)
+                {
+                    runOnUiThread(new Runnable()
+                    {
+                        @Override
+                        public void run()
+                        {
+                            Toast.makeText(MainActivity.this, "无效的自定义DNS服务器地址!", Toast.LENGTH_SHORT).show();
+                        }
+                    });
                 }
                 catch (final Exception e)
                 {
@@ -263,7 +276,7 @@ public class MainActivity extends Activity
                         }
                     });
                 }
-                return true;
+                return false;
             }
 
             @Override
