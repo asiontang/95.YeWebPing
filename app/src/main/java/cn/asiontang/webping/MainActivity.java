@@ -86,9 +86,10 @@ public class MainActivity extends Activity
         HttpURLConnection con = null;
         try
         {
+            long startTime = SystemClock.elapsedRealtime();
             final URL url = new URL(host.startsWith("http") ? host : "http://" + host);
             con = (HttpURLConnection) url.openConnection();
-            con.setRequestMethod("POST");//通过GET会下载太多数据,用Head有的网站不支持,用POST貌似兼容性最好然后下发数据最少?
+            con.setRequestMethod("GET");//通过GET会下载太多数据,用Head有的网站不支持,用POST貌似兼容性最好然后下发数据最少?结果POST还是不支持HTTPS检测.所以还是改为GET好啦.
             con.setConnectTimeout(timeOut);
             con.setReadTimeout(timeOut);
             con.setRequestProperty("Connection", "Close");
@@ -99,6 +100,7 @@ public class MainActivity extends Activity
 
             final PingResult pingResult = new PingResult(null);
             pingResult.fullString = "con.getResponseCode()=" + con.getResponseCode();
+            pingResult.timeTaken = SystemClock.elapsedRealtime() - startTime;
             mPingListener.onResult(pingResult);
 
             return true;
@@ -556,7 +558,7 @@ public class MainActivity extends Activity
                                     @Override
                                     public void run()
                                     {
-                                        long startTime = SystemClock.currentThreadTimeMillis();
+                                        long startTime = SystemClock.elapsedRealtime();
                                         int count = Integer.parseInt(edtTimes.getText().toString());
                                         int successCount = 0;
                                         for (int i = 0; i < count; i++)
@@ -564,7 +566,7 @@ public class MainActivity extends Activity
                                             if (checkItByHttp(ip, Integer.parseInt(edtTimeout.getText().toString()), mPingListener))
                                                 successCount++;
                                         }
-                                        mPingListener.onFinished(new PingStats(null, count, count - successCount, SystemClock.currentThreadTimeMillis() - startTime, 0, 0));
+                                        mPingListener.onFinished(new PingStats(null, count, count - successCount, SystemClock.elapsedRealtime() - startTime, 0, 0));
                                     }
                                 }.start();
                             else
