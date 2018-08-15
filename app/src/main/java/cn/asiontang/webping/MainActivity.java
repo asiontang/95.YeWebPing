@@ -32,10 +32,10 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.InetAddress;
 import java.net.MalformedURLException;
+import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -407,7 +407,8 @@ public class MainActivity extends Activity
                 try
                 {
                     //1.先获取域名对应的所有IP
-                    doInBackground_getIpList();
+                    if (!doInBackground_getIpList())
+                        return null;
 
                     //2.直接刷新界面以便快速响应UI.
                     runOnUiThread(new Runnable()
@@ -447,6 +448,8 @@ public class MainActivity extends Activity
                         @Override
                         public void run()
                         {
+                            reset();
+
                             Toast.makeText(MainActivity.this, "Ping出现未知异常", Toast.LENGTH_SHORT).show();
                             new AlertDialog.Builder(MainActivity.this)
                                     .setTitle("Ping出现未知异常")
@@ -484,33 +487,74 @@ public class MainActivity extends Activity
                 mPingList.add(Ping.onAddress(ip).setTimeOutMillis(timeout).setTimes(times).doPing(mPingListener));
             }
 
-            private void doInBackground_getIpList() throws IOException
+            private boolean doInBackground_getIpList()
             {
-                //qiniu/happy-dns-android: dns library for android
-                //https://github.com/qiniu/happy-dns-android
-                IResolver[] resolvers = new IResolver[1];
-                resolvers[0] = new Resolver(InetAddress.getByName(MainActivity.this.<TextView>findViewById(R.id.edtDNS).getText().toString())); //自定义 DNS 服务器地址
-                //resolvers[1] = AndroidDnsServer.defaultResolver(); //系统默认 DNS 服务器
-                DnsManager dns = new DnsManager(NetworkInfo.normal, resolvers);
-
-                for (final Map.Entry<String, List<String>> entry : mUrlAndIpList.entrySet())
+                try
                 {
-                    final String url = entry.getKey();
-                    final InetAddress[] allByName = dns.queryInetAdress(new Domain(url, false, false));
-                    for (InetAddress address : allByName)
-                    {
-                        final String ip = address.getHostAddress();
-                        entry.getValue().add(ip);
+                    //qiniu/happy-dns-android: dns library for android
+                    //https://github.com/qiniu/happy-dns-android
+                    IResolver[] resolvers = new IResolver[1];
+                    resolvers[0] = new Resolver(InetAddress.getByName(MainActivity.this.<TextView>findViewById(R.id.edtDNS).getText().toString())); //自定义 DNS 服务器地址
+                    //resolvers[1] = AndroidDnsServer.defaultResolver(); //系统默认 DNS 服务器
+                    DnsManager dns = new DnsManager(NetworkInfo.normal, resolvers);
 
-                        mIpAndResult.put(ip, new StringBuilder("正在请求中\n\n"));
-                    }
-                    //有的网站光通过IP是无法正常访问的.所以域名也尝试访问一遍.
-                    if (ckbIsEnableHttpCheck.isChecked())
+                    for (final Map.Entry<String, List<String>> entry : mUrlAndIpList.entrySet())
                     {
-                        entry.getValue().add("http://" + url);
-                        entry.getValue().add("https://" + url);
+                        final String url = entry.getKey();
+                        final InetAddress[] allByName = dns.queryInetAdress(new Domain(url, false, false));
+                        for (InetAddress address : allByName)
+                        {
+                            final String ip = address.getHostAddress();
+                            entry.getValue().add(ip);
+
+                            mIpAndResult.put(ip, new StringBuilder("正在请求中\n\n"));
+                        }
+                        //有的网站光通过IP是无法正常访问的.所以域名也尝试访问一遍.
+                        if (ckbIsEnableHttpCheck.isChecked())
+                        {
+                            entry.getValue().add("http://" + url);
+                            entry.getValue().add("https://" + url);
+                        }
                     }
+                    return true;
                 }
+                catch (final SocketTimeoutException e)
+                {
+                    runOnUiThread(new Runnable()
+                    {
+                        @Override
+                        public void run()
+                        {
+                            reset();
+
+                            Toast.makeText(MainActivity.this, "使用DNS解析域名的IP时超时", Toast.LENGTH_SHORT).show();
+                            new AlertDialog.Builder(MainActivity.this)
+                                    .setTitle("使用DNS解析域名的IP时超时")
+                                    .setMessage("1.更换DNS服务器\n2.切换网络\n3.过段时间再重试")
+                                    .setNegativeButton(android.R.string.ok, null)
+                                    .show();
+                        }
+                    });
+                }
+                catch (final Exception e)
+                {
+                    runOnUiThread(new Runnable()
+                    {
+                        @Override
+                        public void run()
+                        {
+                            reset();
+
+                            Toast.makeText(MainActivity.this, "解析域名的IP时出现未知异常", Toast.LENGTH_SHORT).show();
+                            new AlertDialog.Builder(MainActivity.this)
+                                    .setTitle("解析域名的IP时出现未知异常")
+                                    .setMessage(e.toString())
+                                    .setNegativeButton(android.R.string.ok, null)
+                                    .show();
+                        }
+                    });
+                }
+                return false;
             }
 
             private Ping.PingListener doInBackground_getListener(final String url, final String ip)
