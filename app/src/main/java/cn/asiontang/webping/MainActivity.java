@@ -379,6 +379,7 @@ public class MainActivity extends Activity
 
         btnDoit.setText("确定");
 
+        mProgress.setIndeterminate(false);
         mProgress.setProgress(mProgress.getMax());
 
         mProgressHandler.removeMessages(0);
