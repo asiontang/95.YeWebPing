@@ -32,6 +32,7 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.InetAddress;
 import java.net.MalformedURLException;
@@ -405,32 +406,9 @@ public class MainActivity extends Activity
             {
                 try
                 {
-                    //qiniu/happy-dns-android: dns library for android
-                    //https://github.com/qiniu/happy-dns-android
-                    IResolver[] resolvers = new IResolver[1];
-                    resolvers[0] = new Resolver(InetAddress.getByName(MainActivity.this.<TextView>findViewById(R.id.edtDNS).getText().toString())); //自定义 DNS 服务器地址
-                    //resolvers[1] = AndroidDnsServer.defaultResolver(); //系统默认 DNS 服务器
-                    DnsManager dns = new DnsManager(NetworkInfo.normal, resolvers);
-
                     //1.先获取域名对应的所有IP
-                    for (final Map.Entry<String, List<String>> entry : mUrlAndIpList.entrySet())
-                    {
-                        final String url = entry.getKey();
-                        final InetAddress[] allByName = dns.queryInetAdress(new Domain(url, false, false));
-                        for (InetAddress address : allByName)
-                        {
-                            final String ip = address.getHostAddress();
-                            entry.getValue().add(ip);
+                    doInBackground_getIpList();
 
-                            mIpAndResult.put(ip, new StringBuilder("正在请求中\n\n"));
-                        }
-                        //有的网站光通过IP是无法正常访问的.所以域名也尝试访问一遍.
-                        if (ckbIsEnableHttpCheck.isChecked())
-                        {
-                            entry.getValue().add("http://" + url);
-                            entry.getValue().add("https://" + url);
-                        }
-                    }
                     //2.直接刷新界面以便快速响应UI.
                     runOnUiThread(new Runnable()
                     {
@@ -451,126 +429,14 @@ public class MainActivity extends Activity
                     for (final Map.Entry<String, List<String>> entry : mUrlAndIpList.entrySet())
                     {
                         final String url = entry.getKey();
-                        boolean isHadHttpCheckUrl = false;
                         for (final String ip : entry.getValue())
                         {
-                            final Ping.PingListener mPingListener = new Ping.PingListener()
-                            {
-                                private StringBuilder getOutput()
-                                {
-                                    StringBuilder s = mIpAndResult.get(ip);
-                                    if (s == null)
-                                    {
-                                        s = new StringBuilder();
-                                        mIpAndResult.put(ip, s);
-                                    }
-                                    return s;
-                                }
-
-                                @Override
-                                public void onError(final Exception e)
-                                {
-                                    //更新进度,当进度完成时解冻UI.
-                                    updateCurrentProgress();
-
-                                    Log.e("Ping.onError", e.toString());
-
-                                    if (!mUrlAndReachable.containsKey(url) || !mUrlAndReachable.get(url))
-                                        mUrlAndReachable.put(url, false);
-
-                                    getOutput().append(e.toString());
-                                    getOutput().append("\n");
-
-                                    refresh();
-                                }
-
-                                @Override
-                                public void onFinished(final PingStats e)
-                                {
-                                    Log.e("Ping.onFinished", e.toString());
-
-                                    //更新进度,当进度完成时解冻UI.
-                                    updateCurrentProgress();
-
-                                    //只要有一半的包接收到了就说明网络还算是通的.
-                                    boolean isReachable = false;
-                                    if (!mUrlAndReachable.containsKey(url) || !mUrlAndReachable.get(url))
-                                        mUrlAndReachable.put(url, isReachable = (double) e.getPacketsLost() / (double) e.getNoPings() < 0.5d);
-
-                                    //统计平均响应时间最短的IP
-                                    if (isReachable)
-                                    {
-                                        Object[] ipAndAvg = mUrlAndTheFastestAvgIp.get(url);
-                                        if (ipAndAvg == null)
-                                        {
-                                            ipAndAvg = new Object[]{ip, e.getAverageTimeTaken()};
-                                            mUrlAndTheFastestAvgIp.put(url, ipAndAvg);
-                                        }
-                                        else
-                                        {
-                                            final float lastAvg = (float) ipAndAvg[1];
-                                            if (e.getAverageTimeTaken() < lastAvg)
-                                            {
-                                                ipAndAvg = new Object[]{ip, e.getAverageTimeTaken()};
-                                                mUrlAndTheFastestAvgIp.put(url, ipAndAvg);
-                                            }
-                                        }
-                                    }
-
-                                    getOutput().append("\n");
-                                    getOutput().append("统计信息:").append("\n");
-
-                                    getOutput().append("\t请求:");
-                                    getOutput().append(" 发送=").append(e.getNoPings()).append(",");
-                                    getOutput().append(" 接收=").append(e.getNoPings() - e.getPacketsLost()).append(",");
-                                    getOutput().append(" 丢失=").append(e.getPacketsLost());
-                                    getOutput().append("\n");
-
-                                    getOutput().append("\t时间:");
-                                    getOutput().append(" 平均=").append((int) e.getAverageTimeTaken()).append("ms,");
-                                    getOutput().append(" 最短=").append((int) e.getMinTimeTaken()).append("ms,");
-                                    getOutput().append(" 最长=").append((int) e.getMaxTimeTaken()).append("ms");
-                                    getOutput().append("\n");
-
-                                    refresh();
-                                }
-
-                                @Override
-                                public void onResult(PingResult e)
-                                {
-                                    Log.e("Ping.onResult", e.toString());
-
-                                    getOutput().append("时间=").append((int) e.timeTaken).append("ms");
-                                    if (e.error != null)
-                                    {
-                                        getOutput().append(" ");
-                                        getOutput().append("结果=").append(e.error);
-                                    }
-                                    getOutput().append("\n");
-
-                                    refresh();
-                                }
-                            };
+                            final Ping.PingListener mPingListener = doInBackground_getListener(url, ip);
 
                             if (ckbIsEnableHttpCheck.isChecked())
-                                new Thread()
-                                {
-                                    @Override
-                                    public void run()
-                                    {
-                                        long startTime = SystemClock.elapsedRealtime();
-                                        int count = Integer.parseInt(edtTimes.getText().toString());
-                                        int successCount = 0;
-                                        for (int i = 0; i < count; i++)
-                                        {
-                                            if (checkItByHttp(ip, Integer.parseInt(edtTimeout.getText().toString()), mPingListener))
-                                                successCount++;
-                                        }
-                                        mPingListener.onFinished(new PingStats(null, count, count - successCount, SystemClock.elapsedRealtime() - startTime, 0, 0));
-                                    }
-                                }.start();
+                                doInBackground_checkByHttp(ip, mPingListener);
                             else
-                                mPingList.add(Ping.onAddress(ip).setTimeOutMillis(timeout).setTimes(times).doPing(mPingListener));
+                                doInBackground_checkByPing(ip, mPingListener);
                         }
                     }
                 }
@@ -591,6 +457,161 @@ public class MainActivity extends Activity
                     });
                 }
                 return null;
+            }
+
+            private void doInBackground_checkByHttp(final String ip, final Ping.PingListener mPingListener)
+            {
+                new Thread()
+                {
+                    @Override
+                    public void run()
+                    {
+                        long startTime = SystemClock.elapsedRealtime();
+                        int count = Integer.parseInt(edtTimes.getText().toString());
+                        int successCount = 0;
+                        for (int i = 0; i < count; i++)
+                        {
+                            if (checkItByHttp(ip, Integer.parseInt(edtTimeout.getText().toString()), mPingListener))
+                                successCount++;
+                        }
+                        mPingListener.onFinished(new PingStats(null, count, count - successCount, SystemClock.elapsedRealtime() - startTime, 0, 0));
+                    }
+                }.start();
+            }
+
+            private void doInBackground_checkByPing(final String ip, final Ping.PingListener mPingListener)
+            {
+                mPingList.add(Ping.onAddress(ip).setTimeOutMillis(timeout).setTimes(times).doPing(mPingListener));
+            }
+
+            private void doInBackground_getIpList() throws IOException
+            {
+                //qiniu/happy-dns-android: dns library for android
+                //https://github.com/qiniu/happy-dns-android
+                IResolver[] resolvers = new IResolver[1];
+                resolvers[0] = new Resolver(InetAddress.getByName(MainActivity.this.<TextView>findViewById(R.id.edtDNS).getText().toString())); //自定义 DNS 服务器地址
+                //resolvers[1] = AndroidDnsServer.defaultResolver(); //系统默认 DNS 服务器
+                DnsManager dns = new DnsManager(NetworkInfo.normal, resolvers);
+
+                for (final Map.Entry<String, List<String>> entry : mUrlAndIpList.entrySet())
+                {
+                    final String url = entry.getKey();
+                    final InetAddress[] allByName = dns.queryInetAdress(new Domain(url, false, false));
+                    for (InetAddress address : allByName)
+                    {
+                        final String ip = address.getHostAddress();
+                        entry.getValue().add(ip);
+
+                        mIpAndResult.put(ip, new StringBuilder("正在请求中\n\n"));
+                    }
+                    //有的网站光通过IP是无法正常访问的.所以域名也尝试访问一遍.
+                    if (ckbIsEnableHttpCheck.isChecked())
+                    {
+                        entry.getValue().add("http://" + url);
+                        entry.getValue().add("https://" + url);
+                    }
+                }
+            }
+
+            private Ping.PingListener doInBackground_getListener(final String url, final String ip)
+            {
+                return new Ping.PingListener()
+                {
+                    private StringBuilder getOutput()
+                    {
+                        StringBuilder s = mIpAndResult.get(ip);
+                        if (s == null)
+                        {
+                            s = new StringBuilder();
+                            mIpAndResult.put(ip, s);
+                        }
+                        return s;
+                    }
+
+                    @Override
+                    public void onError(final Exception e)
+                    {
+                        //更新进度,当进度完成时解冻UI.
+                        updateCurrentProgress();
+
+                        Log.e("Ping.onError", e.toString());
+
+                        if (!mUrlAndReachable.containsKey(url) || !mUrlAndReachable.get(url))
+                            mUrlAndReachable.put(url, false);
+
+                        getOutput().append(e.toString());
+                        getOutput().append("\n");
+
+                        refresh();
+                    }
+
+                    @Override
+                    public void onFinished(final PingStats e)
+                    {
+                        Log.e("Ping.onFinished", e.toString());
+
+                        //更新进度,当进度完成时解冻UI.
+                        updateCurrentProgress();
+
+                        //只要有一半的包接收到了就说明网络还算是通的.
+                        boolean isReachable = false;
+                        if (!mUrlAndReachable.containsKey(url) || !mUrlAndReachable.get(url))
+                            mUrlAndReachable.put(url, isReachable = (double) e.getPacketsLost() / (double) e.getNoPings() < 0.5d);
+
+                        //统计平均响应时间最短的IP
+                        if (isReachable)
+                        {
+                            Object[] ipAndAvg = mUrlAndTheFastestAvgIp.get(url);
+                            if (ipAndAvg == null)
+                            {
+                                ipAndAvg = new Object[]{ip, e.getAverageTimeTaken()};
+                                mUrlAndTheFastestAvgIp.put(url, ipAndAvg);
+                            }
+                            else
+                            {
+                                final float lastAvg = (float) ipAndAvg[1];
+                                if (e.getAverageTimeTaken() < lastAvg)
+                                {
+                                    ipAndAvg = new Object[]{ip, e.getAverageTimeTaken()};
+                                    mUrlAndTheFastestAvgIp.put(url, ipAndAvg);
+                                }
+                            }
+                        }
+
+                        getOutput().append("\n");
+                        getOutput().append("统计信息:").append("\n");
+
+                        getOutput().append("\t请求:");
+                        getOutput().append(" 发送=").append(e.getNoPings()).append(",");
+                        getOutput().append(" 接收=").append(e.getNoPings() - e.getPacketsLost()).append(",");
+                        getOutput().append(" 丢失=").append(e.getPacketsLost());
+                        getOutput().append("\n");
+
+                        getOutput().append("\t时间:");
+                        getOutput().append(" 平均=").append((int) e.getAverageTimeTaken()).append("ms,");
+                        getOutput().append(" 最短=").append((int) e.getMinTimeTaken()).append("ms,");
+                        getOutput().append(" 最长=").append((int) e.getMaxTimeTaken()).append("ms");
+                        getOutput().append("\n");
+
+                        refresh();
+                    }
+
+                    @Override
+                    public void onResult(PingResult e)
+                    {
+                        Log.e("Ping.onResult", e.toString());
+
+                        getOutput().append("时间=").append((int) e.timeTaken).append("ms");
+                        if (e.error != null)
+                        {
+                            getOutput().append(" ");
+                            getOutput().append("结果=").append(e.error);
+                        }
+                        getOutput().append("\n");
+
+                        refresh();
+                    }
+                };
             }
         }.execute();
     }
