@@ -357,7 +357,7 @@ public class MainActivity extends Activity
         super.onPause();
     }
 
-    private void refresh()
+    private void refreshList()
     {
         runOnUiThread(new Runnable()
         {
@@ -446,12 +446,12 @@ public class MainActivity extends Activity
         mIpAndResult.clear();
         mUrlAndTheFastestAvgIp.clear();
 
-        for (String url : edtInput.getText().toString().split("\r\n"))
+        for (String url : edtInput.getText().toString().split("\r?\n"))
             //排除掉空网址.
             if (url != null && url.trim().length() > 0)
                 mUrlAndIpList.put(url, new ArrayList<String>());
 
-        refresh();
+        refreshList();
 
         if (mUrlAndIpList.isEmpty())
         {
@@ -478,7 +478,7 @@ public class MainActivity extends Activity
                         @Override
                         public void run()
                         {
-                            refresh();
+                            refreshList();
 
                             mProgress.setMax(0);
                             mProgress.setIndeterminate(false);
@@ -648,7 +648,7 @@ public class MainActivity extends Activity
                         getOutput().append(e.toString());
                         getOutput().append("\n");
 
-                        refresh();
+                        refreshList();
                     }
 
                     @Override
@@ -699,7 +699,7 @@ public class MainActivity extends Activity
                         getOutput().append(" 最长=").append((int) e.getMaxTimeTaken()).append("ms");
                         getOutput().append("\n");
 
-                        refresh();
+                        refreshList();
                     }
 
                     @Override
@@ -715,7 +715,7 @@ public class MainActivity extends Activity
                         }
                         getOutput().append("\n");
 
-                        refresh();
+                        refreshList();
                     }
                 };
             }
