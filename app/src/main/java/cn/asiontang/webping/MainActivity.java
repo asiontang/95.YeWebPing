@@ -792,13 +792,13 @@ public class MainActivity extends Activity
             final Object[] ipAndAvg = mUrlAndTheFastestAvgIp.get(url);
             if (ipAndAvg == null)
             {
-                convertView.<TextView>findViewById(android.R.id.text1).setText(null);
-                convertView.<TextView>findViewById(android.R.id.text2).setText(null);
+                convertView.<TextView>findViewById(android.R.id.text1).setText(String.format("%s", "无"));
+                convertView.<TextView>findViewById(android.R.id.text2).setText(String.format("%s", "无"));
             }
             else
             {
-                convertView.<TextView>findViewById(android.R.id.text1).setText(String.format("最快IP:%s", ipAndAvg[0]));
-                convertView.<TextView>findViewById(android.R.id.text1).setText(String.format("平均:%sms", ((int) (float) ipAndAvg[1])));
+                convertView.<TextView>findViewById(android.R.id.text1).setText(String.format("%s", ipAndAvg[0]));
+                convertView.<TextView>findViewById(android.R.id.text2).setText(String.format("%sms", ((int) (float) ipAndAvg[1])));
             }
         }
     }
