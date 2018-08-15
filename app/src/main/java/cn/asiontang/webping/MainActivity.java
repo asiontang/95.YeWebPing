@@ -453,6 +453,12 @@ public class MainActivity extends Activity
 
         refresh();
 
+        if (mUrlAndIpList.isEmpty())
+        {
+            reset();
+            return;
+        }
+
         final int timeout = Integer.parseInt(edtTimeout.getText().toString());
         final int times = Integer.parseInt(edtTimes.getText().toString());
         new AsyncTask<Void, Void, Void>()
