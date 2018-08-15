@@ -14,6 +14,8 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.os.AsyncTask;
@@ -21,6 +23,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.os.SystemClock;
+import android.text.Html;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
@@ -208,6 +211,25 @@ public class MainActivity extends Activity
         }
     }
 
+    public static String getVersionName(final Context context)
+    {
+        try
+        {
+            // 获取packagemanager的实例
+            final PackageManager packageManager = context.getPackageManager();
+            // getPackageName()是你当前类的包名，0代表是获取版本信息
+            final PackageInfo packInfo = packageManager.getPackageInfo(context.getPackageName(), PackageManager.GET_META_DATA);
+
+            return packInfo.versionName;
+        }
+        catch (final Exception e)
+        {
+            e.printStackTrace();
+            //吃掉异常
+            return "";
+        }
+    }
+
     @SuppressLint("StaticFieldLeak")
     private void checkIsOk(final Runnable runnable)
     {
@@ -296,6 +318,8 @@ public class MainActivity extends Activity
         mSharedPreferences = getSharedPreferences("AsionTang", MODE_PRIVATE);
 
         setContentView(R.layout.main);
+
+        this.<TextView>findViewById(R.id.copyright).setText(Html.fromHtml(String.format("<i>By:AsionTang v%s</i>", getVersionName(this))));
 
         edtDNS = findViewById(R.id.edtDNS);
 
