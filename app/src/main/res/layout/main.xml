@@ -74,7 +74,7 @@
                 android:layout_weight="1"
                 android:background="@null"
                 android:gravity="top"
-                android:hint="可输入多行网址"
+                android:hint="将网址的前缀WWW都去掉,能加快测试速度,因为一般网站都会301,302跳转到www站点,这有利于减少GET数据量."
                 android:inputType="textMultiLine|textUri"
                 android:minLines="5"
                 android:text="" />

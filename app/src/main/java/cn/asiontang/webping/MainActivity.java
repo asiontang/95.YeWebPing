@@ -300,12 +300,13 @@ public class MainActivity extends Activity
         edtTimes = findViewById(R.id.edtTimes);
 
         edtInput = findViewById(android.R.id.input);
-        if (BuildConfig.DEBUG)
-            edtInput.setText("www.baidu.com\r\n" +
-                    "www.qq.com\r\n" +
-                    "www.google.com\r\n" +
-                    "www.tumblr.com\r\n" +
-                    "www.inoreader.com\r\n");
+        //将所有WWW都去掉,能加快测试速度,因为一般网站都会301,302跳转到www站点,这有利于减少GET数据量.
+        edtInput.setText("taobao.com\r\n" +
+                "baidu.com\r\n" +
+                "qq.com\r\n" +
+                "google.com\r\n" +
+                "tumblr.com\r\n" +
+                "inoreader.com\r\n");
 
         btnDoit = findViewById(android.R.id.button1);
         btnDoit.setOnClickListener(new View.OnClickListener()
