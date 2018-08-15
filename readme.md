@@ -14,16 +14,16 @@
 
 ## APP 界面截图
 
-![](Screenshots\1.png)
-![](Screenshots\2.png)
-![](Screenshots\3.png)
-![](Screenshots\4.png)
+![](/Screenshots/1.png)
+![](/Screenshots/2.png)
+![](/Screenshots/3.png)
+![](/Screenshots/4.png)
 
 ## APP 下载地址
 
-1. 源码目录: `/app/release/`
+1. 源码目录: [/app/release/](/src/release/app/release)
 
-1. [v180815.01.01.044](/app/release/YeWebPing(cn.asiontang.webping)v180815.01.01.044%5BAsionTang(10f65e31)%5D.apk?raw=true)
+1. [v180815.01.01.044](/src/release/app/release/YeWebPing(cn.asiontang.webping)v180815.01.01.044%5BAsionTang(10f65e31)%5D.apk)
 
 ## 引用的第三方组件
 
