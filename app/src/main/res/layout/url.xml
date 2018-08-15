@@ -12,38 +12,48 @@
         android:paddingTop="8dp">
 
     <TextView
-            android:id="@android:id/text1"
+            android:id="@android:id/primary"
             style="@android:style/TextAppearance.Medium"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_alignParentLeft="true"
             android:layout_alignParentStart="true"
-            android:layout_toLeftOf="@android:id/text2"
-            android:layout_toStartOf="@android:id/text2"
+            android:layout_toLeftOf="@android:id/custom"
+            android:layout_toStartOf="@android:id/custom"
             tools:text="@string/app_name" />
 
     <TextView
-            android:id="@android:id/text2"
+            android:id="@android:id/custom"
             style="@android:style/TextAppearance.Medium"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_alignParentEnd="true"
             android:layout_alignParentRight="true"
-            android:layout_centerInParent="true"
             android:gravity="center"
             android:minEms="2"
             tools:text="3" />
 
     <TextView
-            android:id="@android:id/message"
+            android:id="@android:id/text1"
             style="@android:style/TextAppearance.Small.Inverse"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_alignParentLeft="true"
             android:layout_alignParentStart="true"
-            android:layout_below="@android:id/text1"
+            android:layout_below="@android:id/primary"
             android:layout_marginTop="4dp"
             android:layout_toLeftOf="@android:id/text2"
             android:layout_toStartOf="@android:id/text2"
-            tools:text="123.123.123.123:平均=233ms" />
+            tools:text="123.123.123.123" />
+
+    <TextView
+            android:id="@android:id/text2"
+            style="@android:style/TextAppearance.Small.Inverse"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentEnd="true"
+            android:layout_alignParentRight="true"
+            android:layout_below="@android:id/primary"
+            android:layout_marginTop="4dp"
+            tools:text="平均=233ms" />
 </RelativeLayout>

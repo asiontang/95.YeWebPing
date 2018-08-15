@@ -765,35 +765,41 @@ public class MainActivity extends Activity
         @Override
         public void getGroupView(final int groupPosition, final boolean isExpanded, final View convertView, final ViewGroup parent, final String url)
         {
-            ((TextView) convertView.findViewById(android.R.id.text1)).setText(url);
+            ((TextView) convertView.findViewById(android.R.id.primary)).setText(url);
 
             //
-            final TextView text2 = convertView.findViewById(android.R.id.text2);
+            final TextView count = convertView.findViewById(android.R.id.custom);
 
             //当使用HTTP检测时,不能叫IP了,应该叫做检测点.CheckPoint
             if (ckbIsEnableHttpCheck.isChecked())
-                text2.setText(String.format("%d CP", mUrlAndIpList.get(url).size()));
+                count.setText(String.format("%d CP", mUrlAndIpList.get(url).size()));
             else
-                text2.setText(String.format("%d IP", mUrlAndIpList.get(url).size()));
+                count.setText(String.format("%d IP", mUrlAndIpList.get(url).size()));
 
             //Ping通状态
             if (mUrlAndReachable.containsKey(url))
             {
                 //当获取到值时,不是联通状态就是不通的状态.
-                text2.setBackgroundColor(mUrlAndReachable.get(url) ? Color.GREEN : Color.RED);
+                count.setBackgroundColor(mUrlAndReachable.get(url) ? Color.GREEN : Color.RED);
             }
             else
             {
                 //获取不到时,说明正在请求中
-                text2.setBackgroundColor(Color.YELLOW);
+                count.setBackgroundColor(Color.YELLOW);
             }
 
             //显示最短的平均时间
             final Object[] ipAndAvg = mUrlAndTheFastestAvgIp.get(url);
             if (ipAndAvg == null)
-                convertView.<TextView>findViewById(android.R.id.message).setText(null);
+            {
+                convertView.<TextView>findViewById(android.R.id.text1).setText(null);
+                convertView.<TextView>findViewById(android.R.id.text2).setText(null);
+            }
             else
-                convertView.<TextView>findViewById(android.R.id.message).setText(String.format("最快IP=%s 平均=%sms", ipAndAvg[0], ((int) (float) ipAndAvg[1])));
+            {
+                convertView.<TextView>findViewById(android.R.id.text1).setText(String.format("最快IP:%s", ipAndAvg[0]));
+                convertView.<TextView>findViewById(android.R.id.text1).setText(String.format("平均:%sms", ((int) (float) ipAndAvg[1])));
+            }
         }
     }
 }
