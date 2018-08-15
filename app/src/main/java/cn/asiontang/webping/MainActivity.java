@@ -518,9 +518,9 @@ public class MainActivity extends Activity
                                     }
 
                                     getOutput().append("\n");
-                                    getOutput().append("Ping 统计信息:").append("\n");
+                                    getOutput().append("统计信息:").append("\n");
 
-                                    getOutput().append("\t封包:");
+                                    getOutput().append("\t请求:");
                                     getOutput().append(" 发送=").append(e.getNoPings()).append(",");
                                     getOutput().append(" 接收=").append(e.getNoPings() - e.getPacketsLost()).append(",");
                                     getOutput().append(" 丢失=").append(e.getPacketsLost());
